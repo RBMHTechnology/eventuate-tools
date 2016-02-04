@@ -36,9 +36,13 @@ object LogViewer extends App {
     ReplicationConnection.DefaultRemoteSystemName,
     ConfigFactory.parseString(
       s"""
-        |akka.remote.netty.tcp {
-        |  hostname = "$localAddress"
-        |  port = $localPort
+        |akka {
+        |  remote.netty.tcp {
+        |    hostname = "$localAddress"
+        |    port = $localPort
+        |  }
+        |  actor.provider = akka.remote.RemoteActorRefProvider
+        |  loglevel = WARNING
         |}
       """.stripMargin
     ).withFallback(ConfigFactory.load())

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/RBMHTechnology/eventuate-tools.svg?branch=master)](https://travis-ci.org/RBMHTechnology/eventuate-tools)
+
 Eventuate Tools
 ===============
 
