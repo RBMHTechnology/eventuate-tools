@@ -1,9 +1,9 @@
-Event log viewer for eventuate
+Event log viewer for Eventuate
 ==============================
 
 log-viewer is a minimalistic scala-application for the command-line that can be used to view the
-content of an [eventuate](https://github.com/RBMHTechnology/eventuate) event log. It connects remotely to a running
-eventuate-based application to retrieve 
+content of an [Eventuate](https://github.com/RBMHTechnology/eventuate) event log. It connects remotely to a running
+Eventuate-based application to retrieve 
 [`DurableEvent`s](http://rbmhtechnology.github.io/eventuate/latest/api/index.html#com.rbmhtechnology.eventuate.DurableEvent)
 of a given span of sequence numbers and simply prints a string representation to stdout.
 
@@ -40,7 +40,7 @@ advanced alternatives, if the one proposed here is not suitable for you.
    to display 100 events from sequence number 150 on of the `default` log of the application running 
    on host foo.example.com with a akka remote port of 5555
    ([configured](http://doc.akka.io/docs/akka/2.4.1/scala/remoting.html#Preparing_your_ActorSystem_for_Remoting)
-   through the configuration variable `akka.remote.netty.tcp.port` of the eventuate application)
+   through the configuration variable `akka.remote.netty.tcp.port` of the Eventuate application)
 
 If the application jars do not contain a `reference.conf` with the akka configuration for custom serializers
 you can provide a corresponding file on command line as follows:
@@ -79,9 +79,33 @@ the application into a distributable artifact. You can for example use `sbt univ
 create a zip-file containing the application. This *universal artifact* contains a `bin` folder with
 scripts for starting the application (`log-viewer`) and a `lib` folder with all required jars and an empty `ext` folder.
 To _install_ the application, you can unzip the archive anywhere.
+
 To create a custom log-viewer package that already contains all class definitions and 
-configuration required for deserializing application specific events, you can modify `build.sbt` 
-by including your dependencies **before** you build your application package.
+configuration required for deserializing application specific events, you can create a new sbt-project 
+with dependencies to your application specific classes as well as the log-viewer project:
+
+```scala
+libraryDependencies ++= Seq(
+  "com.rbmhtechnology.eventuate-tools" %% "log-viewer" % "<version>"
+  // your dependencies ...
+)
+```
+
+and use sbt-native-packager in a similar manner as log-viewer does:
+
+```scala
+enablePlugins(JavaAppPackaging)
+
+publishArtifact in (Compile, packageDoc) := false
+
+publishArtifact in (Test, packageDoc) := false
+
+makeDeploymentSettings(Universal, packageBin in Universal, "zip")
+
+publish <<= publish dependsOn (publish in Universal)
+
+publishLocal <<= publishLocal dependsOn (publishLocal in Universal)
+```
 
 
 Current Limitations
@@ -103,6 +127,6 @@ Implementation notes
 
 log-viewer uses the 
 [`ReplicationProtocol`](http://rbmhtechnology.github.io/eventuate/latest/api/index.html#com.rbmhtechnology.eventuate.ReplicationProtocol$)
-to communicate with the running eventuate-based application, so it basically looks like just another replication-client.
+to communicate with the running Eventuate-based application, so it basically looks like just another replication-client.
 That is why it needs to have access to application jars.
 
