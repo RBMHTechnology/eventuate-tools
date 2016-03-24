@@ -28,7 +28,7 @@ import com.rbmhtechnology.eventuate.ReplicationProtocol.ReplicationEndpointInfo
 import com.rbmhtechnology.eventuate.ReplicationProtocol.ReplicationRead
 import com.rbmhtechnology.eventuate.ReplicationProtocol.ReplicationReadEnvelope
 import com.rbmhtechnology.eventuate.ReplicationProtocol.ReplicationReadSuccess
-import com.rbmhtechnology.eventuate.VectorTime
+import com.rbmhtechnology.eventuate.{ ApplicationVersion, VectorTime }
 
 import scala.concurrent.Future
 import scala.util.Failure
@@ -57,7 +57,9 @@ object RemoteEventReader {
           batchSize.toLong.min(maxEvents - replicationCnt).toInt,
           NoFilter, "", system.deadLetters, new VectorTime()
         ),
-        logName
+        logName,
+        s"${LogViewerBuildInfo.organization}.${LogViewerBuildInfo.name}",
+        ApplicationVersion(LogViewerBuildInfo.version.takeWhile(c => c.isDigit || c == '.'))
       )
       (acceptor ? replicationCommand).onComplete(handleResponse(replicationCnt))
     }

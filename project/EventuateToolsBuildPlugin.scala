@@ -1,10 +1,8 @@
 import sbt._
 import sbt.Keys._
-
 import com.typesafe.sbt.SbtScalariform
 import com.typesafe.sbt.SbtScalariform.ScalariformKeys.preferences
 import scalariform.formatter.preferences._
-
 import de.heikoseeberger.sbtheader.HeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderKey.headers
 import de.heikoseeberger.sbtheader.license.Apache2_0
@@ -18,14 +16,14 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
   override def projectSettings =
     artifactSettings ++
     compileSettings ++
+    testSettings ++
     resolverSettings ++
     publishSettings ++
     formatSettings ++
     headerSettings
 
   val artifactSettings = Seq(
-    organization := "com.rbmhtechnology.eventuate-tools",
-    version := "0.1-SNAPSHOT"
+    organization := "com.rbmhtechnology.eventuate-tools"
   )
 
   val compileSettings = Seq(
@@ -33,6 +31,10 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
     javacOptions += "-Xlint:unchecked",
     scalacOptions ++= Seq("-deprecation", "-feature", "-language:existentials", "-language:postfixOps"),
     autoAPIMappings := true
+  )
+
+  val testSettings = Seq(
+    fork in Test := true
   )
 
   val formatSettings = SbtScalariform.scalariformSettings ++ Seq(
@@ -67,6 +69,9 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
   )
 
   val resolverSettings = Seq(
-    resolvers += "OJO Snapshots" at s"$jfrogUri/$jfrogSnapshots"
+    resolvers ++= Seq(
+      "OJO Snapshots" at s"$jfrogUri/$jfrogSnapshots",
+      "Eventuate Releases" at "https://dl.bintray.com/rbmhtechnology/maven"
+    )
   )
 }

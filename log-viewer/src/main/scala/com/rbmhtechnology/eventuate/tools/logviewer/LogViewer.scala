@@ -64,14 +64,14 @@ object LogViewer extends App {
     system.terminate()
   }
 
-  private def remoteActorPath(protocol: String, connectionInfo: ReplicationConnection, actorName: String): ActorPath =
+  private[logviewer] def remoteActorPath(protocol: String, connectionInfo: ReplicationConnection, actorName: String): ActorPath =
     ActorPath.fromString(s"$protocol://${connectionInfo.name}@${connectionInfo.host}:${connectionInfo.port}/user/$actorName")
 
   /**
    * Return the protocol used by the given ActorSystem,
    * if the ActorSystem is an ExtendedActorSystem and "akka.tcp" as default otherwise.
    */
-  private def akkaProtocol(system: ActorSystem): String = system match {
+  private[logviewer] def akkaProtocol(system: ActorSystem): String = system match {
     case sys: ExtendedActorSystem => sys.provider.getDefaultAddress.protocol
     case _                        => "akka.tcp"
   }
