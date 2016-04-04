@@ -14,6 +14,8 @@ releaseProcess := Seq[ReleaseStep](
   commitNextVersion
 )
 
+releaseTagName := s"v-${if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value}"
+
 // do not package/publish from root
 
 Keys.`package` := {
