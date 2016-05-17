@@ -56,7 +56,7 @@ object LogViewer extends App {
 
   private val eventFormatter = new CaseClassFormatter[DurableEvent](eventFormatString)
 
-  readEventsAndDo(acceptor, logName, fromSequenceNr, maxEvents, batchSize) {
+  readEventsAndDo(acceptor, logName, fromSequenceNr, maxEvents, batchSize, scanLimit) {
     event => println(eventFormatter.format(event))
   } {
     _.printStackTrace()

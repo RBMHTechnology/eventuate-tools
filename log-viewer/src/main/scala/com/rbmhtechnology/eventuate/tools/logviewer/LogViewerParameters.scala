@@ -99,4 +99,6 @@ class LogViewerParameters {
       "See\nhttp://rbmhtechnology.github.io/eventuate/latest/api/index.html#com.rbmhtechnology.eventuate.DurableEvent for valid field-names."
   )
   var eventFormatString = "%(localSequenceNr)s %(systemTimestamp)tFT%(systemTimestamp)tT.%(systemTimestamp)tL %(this)s"
+
+  val scanLimit: Int = config.getInt("eventuate.log.replication.remote-scan-limit")
 }

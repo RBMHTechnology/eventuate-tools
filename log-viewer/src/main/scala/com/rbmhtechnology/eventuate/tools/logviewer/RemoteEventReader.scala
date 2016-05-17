@@ -45,7 +45,8 @@ object RemoteEventReader {
     logName: String,
     fromSequenceNo: Long,
     maxEvents: Long,
-    batchSize: Int
+    batchSize: Int,
+    scanLimit: Int
   )(handleEvent: DurableEvent => Unit)(handleFailure: Throwable => Unit)(terminate: => Unit)(implicit system: ActorSystem): Unit = {
 
     import system.dispatcher
@@ -55,6 +56,7 @@ object RemoteEventReader {
         new ReplicationRead(
           fromSeqNo,
           batchSize.toLong.min(maxEvents - replicationCnt).toInt,
+          scanLimit,
           NoFilter, "", system.deadLetters, new VectorTime()
         ),
         logName,
@@ -65,10 +67,10 @@ object RemoteEventReader {
     }
 
     def handleResponse(replicationCnt: Long): PartialFunction[Try[Any], Unit] = {
-      case Success(ReplicationReadSuccess(events, progresss, _, _)) =>
+      case Success(ReplicationReadSuccess(events, fromSequenceNr, progresss, _, _)) =>
         handling(classOf[Exception]).by(handleFailure.andThen(_ => terminate))(events.foreach(handleEvent))
         val newReplicationCnt = replicationCnt + events.size
-        if (newReplicationCnt < maxEvents && events.nonEmpty)
+        if (newReplicationCnt < maxEvents && progresss >= fromSequenceNr)
           replicate(progresss + 1, newReplicationCnt)
         else
           terminate

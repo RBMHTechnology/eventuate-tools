@@ -2,8 +2,8 @@ import sbt._
 
 object Dependencies {
 
-  val eventuateVersion = "0.6"
-  val akkaVersion = "2.4.2"
+  val eventuateVersion = "0.7"
+  val akkaVersion = "2.4.4"
 
   lazy val eventuate = Seq(
     "com.rbmhtechnology" %% "eventuate-core" % eventuateVersion
