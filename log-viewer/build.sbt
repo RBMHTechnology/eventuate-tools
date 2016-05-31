@@ -1,15 +1,10 @@
-import Dependencies._
 import com.typesafe.sbt.packager.SettingsHelper.makeDeploymentSettings
 import sbtbuildinfo.BuildInfoPlugin
 
 fork in run := true
 
 libraryDependencies ++=
-  eventuate ++
-    Seq("com.beust" % "jcommander" % "1.48") ++
-    (scalaTest ++
-      eventuateLevelDb ++
-      akkaTestKit).map(_ % Test)
+    Seq("com.beust" % "jcommander" % "1.48")
 
 enablePlugins(AutomateHeaderPlugin)
 
