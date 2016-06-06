@@ -19,9 +19,13 @@ object AkkaSystems {
     """.stripMargin
   )
 
+  def akkaTestTimeoutConfig: Config = ConfigFactory.parseString(
+    s"akka.test.single-expect-default=${TestTimings.timeout.duration.toMillis}ms"
+  )
+
   def withActorSystem[A](overrideConfig: Config = ConfigFactory.empty())(f: ActorSystem => A): A = {
     import Futures.AwaitHelper
-    val system = ActorSystem(newUniqueSystemName, overrideConfig.withFallback(ConfigFactory.load()))
+    val system = ActorSystem(newUniqueSystemName, overrideConfig.withFallback(akkaTestTimeoutConfig).withFallback(ConfigFactory.load()))
     try {
       f(system)
     } finally {
