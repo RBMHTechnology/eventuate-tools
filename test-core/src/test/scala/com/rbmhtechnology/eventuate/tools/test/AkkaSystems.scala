@@ -25,7 +25,11 @@ object AkkaSystems {
 
   def withActorSystem[A](overrideConfig: Config = ConfigFactory.empty())(f: ActorSystem => A): A = {
     import Futures.AwaitHelper
-    val system = ActorSystem(newUniqueSystemName, overrideConfig.withFallback(akkaTestTimeoutConfig).withFallback(ConfigFactory.load()))
+    val config = overrideConfig
+      .withFallback(akkaTestTimeoutConfig)
+      .withFallback(ConfigFactory.parseResourcesAnySyntax("application.conf"))
+      .withFallback(ConfigFactory.load("test-core.conf"))
+    val system = ActorSystem(newUniqueSystemName, config)
     try {
       f(system)
     } finally {

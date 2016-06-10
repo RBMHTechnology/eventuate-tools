@@ -7,12 +7,14 @@ import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.servlets.MetricsServlet
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.rbmhtechnology.eventuate.DurableEvent
 import com.rbmhtechnology.eventuate.ReplicationEndpoint
-import com.rbmhtechnology.eventuate.ReplicationFilter
 import com.rbmhtechnology.eventuate.tools.test.EventLogs.eventInspector
 import com.rbmhtechnology.eventuate.tools.test.EventuallyWithDefaultTiming
 import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.defaultLogFilter
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.defaultLogId
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.defaultLogName
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.evenFilter
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.oddFilter
 import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.withBidirectionalReplicationEndpoints
 import com.rbmhtechnology.eventuate.tools.test.TestTimings
 import org.scalatest.Matchers
@@ -32,8 +34,8 @@ class ReplicationEndpointGaugeSpec extends WordSpec with Matchers with Eventuall
       "record ReplicationEndpointMetrics" in
         withBidirectionalReplicationEndpoints(aFilters = defaultLogFilter(evenFilter), bFilters = defaultLogFilter(oddFilter)) {
           (endpointA, endpointB) =>
-            val logAId = logId(endpointA)
-            val logBId = logId(endpointB)
+            val logAId = defaultLogId(endpointA)
+            val logBId = defaultLogId(endpointB)
 
             val metricsA = new MetricRegistry
             metricsA.register(endpointA.id, new ReplicationEndpointGauge(endpointA, TestTimings.timeout.duration))
@@ -74,10 +76,10 @@ class ReplicationEndpointGaugeSpec extends WordSpec with Matchers with Eventuall
 
           eventually {
             val rootNode = getJsonMetrics(servlet)
-              .get("gauges").get(localEndpoint.id).get("value").get("replicatedLogsMetrics").get(logName(localEndpoint))
+              .get("gauges").get(localEndpoint.id).get("value").get("replicatedLogsMetrics").get(defaultLogName(localEndpoint))
             rootNode.get("localSequenceNo").longValue shouldBe 3
-            rootNode.get("localVersionVector").get(logId(localEndpoint)).longValue shouldBe 3
-            rootNode.get("replicationProgress").get(logId(remoteEndpoint)).longValue shouldBe 3
+            rootNode.get("localVersionVector").get(defaultLogId(localEndpoint)).longValue shouldBe 3
+            rootNode.get("replicationProgress").get(defaultLogId(remoteEndpoint)).longValue shouldBe 3
           }
         }
     }
@@ -85,25 +87,9 @@ class ReplicationEndpointGaugeSpec extends WordSpec with Matchers with Eventuall
 }
 
 object ReplicationEndpointGaugeSpec {
-  val evenFilter = new ReplicationFilter {
-    override def apply(event: DurableEvent) = event.payload match {
-      case i: Int => i % 2 == 0
-      case _      => false
-    }
-  }
-  val oddFilter = new ReplicationFilter {
-    override def apply(event: DurableEvent) = event.payload match {
-      case i: Int => i % 2 == 1
-      case _      => false
-    }
-  }
-
-  def logName(endpoint: ReplicationEndpoint): String = endpoint.logNames.head
-
-  def logId(endpoint: ReplicationEndpoint): String = endpoint.logId(logName(endpoint))
 
   def replicationEndpointMetrics(localSeqNo: Long, versionVector: Map[String, Long], remoteEndpoint: ReplicationEndpoint, replicationProgress: Long) = {
-    val log = logName(remoteEndpoint)
+    val log = defaultLogName(remoteEndpoint)
     ReplicationEndpointMetrics(
       Map(log -> ReplicatedLogMetrics(
         localSeqNo,

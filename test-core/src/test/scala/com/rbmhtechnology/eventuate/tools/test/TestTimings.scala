@@ -8,7 +8,7 @@ import org.scalatest.time.Span
 import scala.concurrent.duration.DurationInt
 
 object TestTimings {
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(15.seconds)
 }
 
 trait EventuallyWithDefaultTiming extends Eventually {
