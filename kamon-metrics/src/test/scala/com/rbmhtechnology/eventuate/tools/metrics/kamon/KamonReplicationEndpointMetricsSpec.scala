@@ -1,6 +1,7 @@
 package com.rbmhtechnology.eventuate.tools.metrics.kamon
 
 import akka.testkit.TestProbe
+import com.rbmhtechnology.eventuate.EndpointFilters.sourceFilters
 import com.rbmhtechnology.eventuate.ReplicationEndpoint
 import com.rbmhtechnology.eventuate.tools.metrics.kamon.ReplicatedLogMetrics.category
 import com.rbmhtechnology.eventuate.tools.metrics.kamon.ReplicatedLogMetrics.replicationProgressName
@@ -31,7 +32,7 @@ class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with Ev
     "called for an ReplicationEndpoint" must {
       "record metrics for all logs of the endpoint" in {
         val logNames = Set("log1", "log2")
-        withBidirectionalReplicationEndpoints(logNames, aFilters = logNames.map(_ -> evenFilter).toMap, bFilters = logNames.map(_ -> oddFilter).toMap) {
+        withBidirectionalReplicationEndpoints(logNames, aFilters = sourceFilters(logNames.map(_ -> evenFilter).toMap), bFilters = sourceFilters(logNames.map(_ -> oddFilter).toMap)) {
           (endpointA, endpointB) =>
             val logIds = logNames.map(endpointA.logId) zip logNames.map(endpointB.logId)
             new KamonReplicationEndpointMetrics(endpointA).startRecording()

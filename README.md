@@ -12,3 +12,6 @@ This repository contains tools that support operating
   replication endpoint based on [dropwizard's metrics lib](http://metrics.dropwizard.io/3.1.0/).
 - [Kamon metrics](kamon-metrics/README.md): A library providing metrics for an replication endpoint
   based on [kamon metrics lib](http://kamon.io/core/metrics/core-concepts/)
+- [Dropwizard health checks](dropwizard-healthchecks/README.md): A library providing health checks for
+  an replication endpoint based on 
+  [dropwizard's health check lib](http://metrics.dropwizard.io/3.1.0/getting-started/#health-checks)

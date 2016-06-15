@@ -4,6 +4,7 @@ lazy val testCore = subProject("test-core")
 lazy val logViewer = subProject("log-viewer").dependsOn(testCore % "test->test")
 lazy val dropwizardMetrics = subProject("dropwizard-metrics").dependsOn(testCore % "test->test")
 lazy val kamonMetrics = subProject("kamon-metrics").dependsOn(testCore % "test->test")
+lazy val dropwizardHealth = subProject("dropwizard-healthchecks").dependsOn(testCore % "test->test")
 
 // release
 releaseProcess := Seq[ReleaseStep](
