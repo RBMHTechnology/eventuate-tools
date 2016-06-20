@@ -11,7 +11,7 @@ script:
   - find $HOME/.sbt -name "*.lock" -exec rm {} +
   - find $HOME/.ivy2 -name "ivydata-*.properties" -exec rm {} +
 after_success:
-  - if [ "$TRAVIS_PULL_REQUEST" = false -a "$TRAVIS_BRANCH" = master ]; then sbt ++$TRAVIS_SCALA_VERSION publish; fi
+  - if [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_BRANCH" = master -o -n "$TRAVIS_TAG" ]; then sbt ++$TRAVIS_SCALA_VERSION publish; fi
 scala:
   - 2.11.7
 jdk:

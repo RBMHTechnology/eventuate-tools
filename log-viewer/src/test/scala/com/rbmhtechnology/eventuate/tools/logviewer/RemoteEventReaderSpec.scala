@@ -18,26 +18,24 @@ package com.rbmhtechnology.eventuate.tools.logviewer
 
 import java.util.concurrent.CyclicBarrier
 
-import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import com.rbmhtechnology.eventuate.DurableEvent
 import com.rbmhtechnology.eventuate.ReplicationEndpoint.DefaultLogName
-import com.rbmhtechnology.eventuate.log.leveldb.LeveldbEventLog
-import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReaderSpec.withLevelDbReplicationEndpoint
-import com.rbmhtechnology.eventuate.tools.logviewer.AkkaSystems.withActorSystem
-import com.rbmhtechnology.eventuate.tools.logviewer.AkkaSystems.akkaRemotingConfig
-import com.rbmhtechnology.eventuate.tools.logviewer.Eventuate.{ acceptorOf, eventListener, withLevelDbLogConfig }
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReaderSpec.emit
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReaderSpec.storeErrors
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReaderSpec.storeEvents
-import com.rbmhtechnology.eventuate.{ EventsourcedActor, ReplicationEndpoint }
-import org.scalatest.{ Matchers, WordSpec }
+import com.rbmhtechnology.eventuate.tools.test.EventLogs.eventInspector
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.acceptorOf
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.withLevelDbReplicationEndpoint
+import com.rbmhtechnology.eventuate.ReplicationEndpoint
+import org.scalatest.Matchers
+import org.scalatest.WordSpec
 
 import scala.collection.mutable.ListBuffer
 
 class RemoteEventReaderSpec extends WordSpec with Matchers {
   "A remote event-sourced system with events" when {
     "RemoteEventReader.readEventsAndDo is invoked with a valid event-range" must {
-      "read these events from the remote acceptor" in withLevelDbReplicationEndpoint { implicit endpoint =>
+      "read these events from the remote acceptor" in withLevelDbReplicationEndpoint() { implicit endpoint =>
         implicit val system = endpoint.system
         emit(1 to 20)
 
@@ -56,7 +54,7 @@ class RemoteEventReaderSpec extends WordSpec with Matchers {
       }
     }
     "RemoteEventReader.readEventsAndDo is invoked with an event-range exceeding existing events" must {
-      "read all events after fromSequenceNo from the remote acceptor" in withLevelDbReplicationEndpoint { implicit endpoint =>
+      "read all events after fromSequenceNo from the remote acceptor" in withLevelDbReplicationEndpoint() { implicit endpoint =>
         implicit val system = endpoint.system
         val totalEventCnt = 20
         emit(1 to totalEventCnt)
@@ -75,7 +73,7 @@ class RemoteEventReaderSpec extends WordSpec with Matchers {
       }
     }
     "RemoteEventReader.readEventsAndDo is invoked with an event-range after existing events" must {
-      "read no events from the remote acceptor" in withLevelDbReplicationEndpoint { implicit endpoint =>
+      "read no events from the remote acceptor" in withLevelDbReplicationEndpoint() { implicit endpoint =>
         implicit val system = endpoint.system
         val totalEventCnt = 20
         emit(1 to totalEventCnt)
@@ -103,42 +101,6 @@ object RemoteEventReaderSpec {
 
   def storeErrors(errors: ListBuffer[Throwable]): Throwable => Unit = errors += _
 
-  def withLevelDbReplicationEndpoint[A](f: ReplicationEndpoint => A): A = {
-    withLevelDbLogConfig { config =>
-      withActorSystem(config.withFallback(akkaRemotingConfig)) { implicit system =>
-        val endpoint = replicationEndpoint
-        f(endpoint)
-      }
-    }
-  }
-
-  private def replicationEndpoint(implicit system: ActorSystem): ReplicationEndpoint = {
-    val endpoint = new ReplicationEndpoint(system.name, Set(DefaultLogName), LeveldbEventLog.props(_), Set.empty)
-    endpoint.activate()
-    endpoint
-  }
-
-  def emit(events: Traversable[Any])(implicit endpoint: ReplicationEndpoint): Any = {
-    val listener = eventListener(endpoint)
-    val actor = startEchoEventsourcedActor
-    events.foreach(actor ! _)
-    listener.waitForMessage(events.last)
-  }
-
-  private def startEchoEventsourcedActor(implicit endpoint: ReplicationEndpoint): ActorRef =
-    endpoint.system.actorOf(EchoEventsourcedActor.props(endpoint.logs(DefaultLogName)))
-
-  private class EchoEventsourcedActor(val eventLog: ActorRef) extends EventsourcedActor {
-    override def id = getClass.getSimpleName
-
-    override def onEvent = Actor.emptyBehavior
-
-    override def onCommand = {
-      case event => persist(event)(_.get)
-    }
-  }
-
-  private object EchoEventsourcedActor {
-    def props(eventLog: ActorRef) = Props(new EchoEventsourcedActor(eventLog))
-  }
+  def emit(events: Traversable[Any])(implicit endpoint: ReplicationEndpoint): Unit =
+    eventInspector(endpoint).emitAndWait(events)
 }

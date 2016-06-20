@@ -6,6 +6,7 @@ import scalariform.formatter.preferences._
 import de.heikoseeberger.sbtheader.HeaderPlugin
 import de.heikoseeberger.sbtheader.HeaderKey.headers
 import de.heikoseeberger.sbtheader.license.Apache2_0
+import Dependencies._
 
 object EventuateToolsBuildPlugin extends AutoPlugin {
 
@@ -17,6 +18,7 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
     artifactSettings ++
     compileSettings ++
     testSettings ++
+    dependencySettings ++
     resolverSettings ++
     publishSettings ++
     formatSettings ++
@@ -35,6 +37,14 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
 
   val testSettings = Seq(
     fork in Test := true
+  )
+
+  val dependencySettings = Seq(
+    libraryDependencies ++=
+      eventuate ++
+      (scalaTest ++
+        eventuateLevelDb ++
+        akkaTestKit).map(_ % Test)
   )
 
   val formatSettings = SbtScalariform.scalariformSettings ++ Seq(

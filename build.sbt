@@ -1,6 +1,8 @@
 import ReleaseTransformations._
 
-lazy val logViewer = subProject("log-viewer")
+lazy val testCore = subProject("test-core")
+lazy val logViewer = subProject("log-viewer").dependsOn(testCore % "test->test")
+lazy val dropwizardMetrics = subProject("dropwizard-metrics").dependsOn(testCore % "test->test")
 
 // release
 releaseProcess := Seq[ReleaseStep](
