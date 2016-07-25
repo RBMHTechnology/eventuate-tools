@@ -16,11 +16,9 @@ val endpoint = new ReplicationEndpoint(...)
 val metrics = new KamonReplicationEndpointMetrics(endpoint, Some("prefix."))
 ```
 
-Afterwards recording of metrics can be started and stopped:
+Recording of metrics starts immediately and can be stopped with:
 
 ```scala
-metrics.startRecording()
-...
 metrics.stopRecording()
 ```
 

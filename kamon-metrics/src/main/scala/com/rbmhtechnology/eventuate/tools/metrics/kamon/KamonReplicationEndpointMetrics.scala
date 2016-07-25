@@ -30,7 +30,7 @@ import scala.concurrent.duration.FiniteDuration
 /**
  * Provides metrics for a [[ReplicationEndpoint]] in form of kamon-histograms.
  *
- * Once recording is started it will record for each event-log managed by the `monitoredEndpoint` under
+ * It will record for each event-log managed by the `monitoredEndpoint` under
  *
  * - the name `prefix` `logId` and
  * - the category `eventuate-replicated-log`
@@ -59,14 +59,8 @@ class KamonReplicationEndpointMetrics(
     pollMetricsMinDelay: FiniteDuration = 1.second
 ) {
 
-  private var monitorActors: Map[String, ActorRef] = Map.empty
-
-  /**
-   * Start to record metrics for `monitoredEndpoint`.
-   */
-  def startRecording(): Unit = {
-    require(monitorActors.isEmpty)
-    monitorActors = monitoredEndpoint.logs.map {
+  private val monitorActors: Map[String, ActorRef] =
+    monitoredEndpoint.logs.map {
       case (logName, logActor) =>
         val logId = monitoredEndpoint.logId(logName)
         logName -> monitoredEndpoint.system.actorOf(
@@ -74,15 +68,12 @@ class KamonReplicationEndpointMetrics(
           s"KamonMonitor_$logId"
         )
     }
-  }
 
   /**
    * Stop recording of metrics.
    */
-  def stopRecording(): Unit = {
+  def stopRecording(): Unit =
     monitorActors.values.foreach(_ ! PoisonPill)
-    monitorActors = Map.empty
-  }
 
   private def prefixed(suffix: String): String =
     s"${entityNamePrefix.getOrElse("")}$suffix"
