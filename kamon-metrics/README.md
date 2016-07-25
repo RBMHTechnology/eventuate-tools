@@ -36,7 +36,7 @@ the following set of histograms:
 
 - `sequenceNo`: The sequence number of the local log.
 - `localVersionVector.<process-id>`: The entire version vector of the local log. For details see also the 
-  [eventuate documentation](http://rbmhtechnology.github.io/eventuate/architecture.html#vector-clocks).
+  [Eventuate documentation](http://rbmhtechnology.github.io/eventuate/architecture.html#vector-clocks).
 - For each remote replica (`<remote-log.id>`) of the local log: 
   - `replicationProgress.<remote-log-id>`: The replication progress in form of the sequence number 
     in the remote log up to which events have been replicated to the local log.
