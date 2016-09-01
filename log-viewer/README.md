@@ -35,7 +35,7 @@ advanced alternatives, if the one proposed here is not suitable for you.
    ```
    to display the help page about the command line options.
    ```bash
-   log-viewer --batchSize 20 --fromSeqNo 150 --maxEvents 100 --remoteHost foo.example.com --remote-port 5555
+   log-viewer --batchSize 20 --fromSeqNo 150 --maxEvents 100 --remoteHost foo.example.com --remotePort 5555
    ```
    to display 100 events from sequence number 150 on of the `default` log of the application running 
    on host foo.example.com with a akka remote port of 5555
