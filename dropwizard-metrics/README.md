@@ -74,7 +74,7 @@ of an `ReplicationEndpoint` the following is displayed:
 
 - The sequence number of the local log (`localSequenceNo`).
 - The entire version vector of the local log (`localVersionVector`). For details see also the 
-  [eventuate documentation](http://rbmhtechnology.github.io/eventuate/architecture.html#vector-clocks).
+  [Eventuate documentation](http://rbmhtechnology.github.io/eventuate/architecture.html#vector-clocks).
 - For each remote replica (here `endpointA_log1`) of the local log (`replicationProgress`):
   - The replication progress in form of the sequence number in the remote log up to which events have been replicated to the local log.
 

@@ -1,6 +1,7 @@
 package com.rbmhtechnology.eventuate.tools.metrics.kamon
 
 import akka.testkit.TestProbe
+import com.rbmhtechnology.eventuate.EndpointFilters.sourceFilters
 import com.rbmhtechnology.eventuate.ReplicationEndpoint
 import com.rbmhtechnology.eventuate.tools.metrics.kamon.ReplicatedLogMetrics.category
 import com.rbmhtechnology.eventuate.tools.metrics.kamon.ReplicatedLogMetrics.replicationProgressName
@@ -12,7 +13,6 @@ import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.defaultLogId
 import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.evenFilter
 import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.oddFilter
 import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.withBidirectionalReplicationEndpoints
-import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.withLevelDbReplicationEndpoint
 import kamon.Kamon
 import kamon.metric.Entity
 import kamon.metric.EntitySnapshot
@@ -31,11 +31,11 @@ class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with Ev
     "called for an ReplicationEndpoint" must {
       "record metrics for all logs of the endpoint" in {
         val logNames = Set("log1", "log2")
-        withBidirectionalReplicationEndpoints(logNames, aFilters = logNames.map(_ -> evenFilter).toMap, bFilters = logNames.map(_ -> oddFilter).toMap) {
+        withBidirectionalReplicationEndpoints(logNames, aFilters = sourceFilters(logNames.map(_ -> evenFilter).toMap), bFilters = sourceFilters(logNames.map(_ -> oddFilter).toMap)) {
           (endpointA, endpointB) =>
             val logIds = logNames.map(endpointA.logId) zip logNames.map(endpointB.logId)
-            new KamonReplicationEndpointMetrics(endpointA).startRecording()
-            new KamonReplicationEndpointMetrics(endpointB).startRecording()
+            new KamonReplicationEndpointMetrics(endpointA)
+            new KamonReplicationEndpointMetrics(endpointB)
 
             logNames.foreach(eventInspector(endpointA, _).emitAndWait(1 to 3))
 
@@ -74,14 +74,6 @@ class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with Ev
         }
       }
     }
-
-    "called twice" must {
-      "throw IllegalArgumentException" in withLevelDbReplicationEndpoint() { endpoint =>
-        val metrics = new KamonReplicationEndpointMetrics(endpoint)
-        metrics.startRecording()
-        an[IllegalArgumentException] shouldBe thrownBy(metrics.startRecording())
-      }
-    }
   }
 
   "KamonMetrics.stopRecording" when {
@@ -89,7 +81,6 @@ class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with Ev
       "stop recording metrics" in withBidirectionalReplicationEndpoints() { (endpointA, _) =>
         val metrics = new KamonReplicationEndpointMetrics(endpointA)
         val subscriber = snapshotSubscriber(endpointA)
-        metrics.startRecording()
         metrics.stopRecording()
         eventInspector(endpointA).emitAndWait(1 to 3)
         val snapshot = subscriber.expectMsgClass(classOf[TickMetricSnapshot])

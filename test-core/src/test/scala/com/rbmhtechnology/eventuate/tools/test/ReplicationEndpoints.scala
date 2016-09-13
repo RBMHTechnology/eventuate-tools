@@ -5,6 +5,8 @@ import akka.actor.ActorSelection
 import akka.actor.ActorSystem
 import akka.actor.Props
 import com.rbmhtechnology.eventuate.DurableEvent
+import com.rbmhtechnology.eventuate.EndpointFilters
+import com.rbmhtechnology.eventuate.EndpointFilters.NoFilters
 import com.rbmhtechnology.eventuate.ReplicationConnection
 import com.rbmhtechnology.eventuate.ReplicationEndpoint
 import com.rbmhtechnology.eventuate.ReplicationEndpoint._
@@ -20,8 +22,8 @@ object ReplicationEndpoints {
   def withBidirectionalReplicationEndpoints[A](
     logNames: Set[String] = Set(DefaultLogName),
     logFactory: String => Props = LeveldbEventLog.props(_),
-    aFilters: Map[String, ReplicationFilter] = Map.empty,
-    bFilters: Map[String, ReplicationFilter] = Map.empty
+    aFilters: EndpointFilters = NoFilters,
+    bFilters: EndpointFilters = NoFilters
   )(f: (ReplicationEndpoint, ReplicationEndpoint) => A): A = {
     withLevelDbLogConfig { configA =>
       withActorSystem(configA.withFallback(akkaRemotingConfig)) { systemA =>
@@ -51,8 +53,8 @@ object ReplicationEndpoints {
     }
   }
 
-  def defaultLogFilter(replicationFilter: ReplicationFilter): Map[String, ReplicationFilter] =
-    Map(DefaultLogName -> replicationFilter)
+  def defaultLogFilter(replicationFilter: ReplicationFilter): EndpointFilters =
+    EndpointFilters.sourceFilters(Map(DefaultLogName -> replicationFilter))
 
   def defaultLogName(endpoint: ReplicationEndpoint): String = endpoint.logNames.head
   def defaultLogId(endpoint: ReplicationEndpoint): String = endpoint.logId(defaultLogName(endpoint))
@@ -64,17 +66,17 @@ object ReplicationEndpoints {
 
     withLevelDbLogConfig { config =>
       withActorSystem(config.withFallback(akkaRemotingConfig)) { implicit system =>
-        val endpoint = replicationEndpoint()
+        val endpoint = replicationEndpoint(logNames)
         f(endpoint)
       }
     }
   }
 
-  private def replicationEndpoint(
+  def replicationEndpoint(
     logNames: Set[String] = Set(DefaultLogName),
     logFactory: String => Props = LeveldbEventLog.props(_),
     connections: Set[ReplicationConnection] = Set.empty,
-    localFilters: Map[String, ReplicationFilter] = Map.empty
+    localFilters: EndpointFilters = NoFilters
   )(implicit system: ActorSystem): ReplicationEndpoint =
     activatedReplicationEndpoint(system.name, logNames, logFactory, connections, localFilters)
 
@@ -83,7 +85,7 @@ object ReplicationEndpoints {
     logNames: Set[String],
     logFactory: String => Props = LeveldbEventLog.props(_),
     connections: Set[ReplicationConnection],
-    localFilters: Map[String, ReplicationFilter]
+    localFilters: EndpointFilters
   )(implicit system: ActorSystem): ReplicationEndpoint = {
     val endpoint = new ReplicationEndpoint(endpointId, logNames, logFactory, connections, localFilters)
     endpoint.activate()
