@@ -58,7 +58,7 @@ class DropwizardReplicationMetricsRecorder(
       case (logName, logActor) =>
         val logId = endpoint.logId(logName)
         logName -> endpoint.system.actorOf(
-          DropwizardEventLogMetricsRecorder.props(metricRegistry, prefixed(logId), logActor, pollMetricsMinDelay),
+          DropwizardLogMetricsRecorder.props(metricRegistry, prefixed(logId), logActor, pollMetricsMinDelay),
           s"EventLogMetricRecorder_$logId"
         )
     }
@@ -107,7 +107,7 @@ object DropwizardReplicationMetricsRecorder {
   def replicationProgressName(logId: String) = name("replicationProgress", logId)
 }
 
-private class DropwizardEventLogMetricsRecorder private (metricRegistry: MetricRegistry, namePrefix: String, logActor: ActorRef, pollMetricsMinDelay: FiniteDuration) extends Actor {
+private class DropwizardLogMetricsRecorder private (metricRegistry: MetricRegistry, namePrefix: String, logActor: ActorRef, pollMetricsMinDelay: FiniteDuration) extends Actor {
 
   private var lastMetricsUpdate = 0L
 
@@ -171,7 +171,7 @@ private class DropwizardEventLogMetricsRecorder private (metricRegistry: MetricR
   }
 }
 
-private object DropwizardEventLogMetricsRecorder {
+private object DropwizardLogMetricsRecorder {
   def props(metricRegistry: MetricRegistry, namePrefix: String, logActor: ActorRef, pollMetricsMinDelay: FiniteDuration) =
-    Props(new DropwizardEventLogMetricsRecorder(metricRegistry, namePrefix, logActor, pollMetricsMinDelay))
+    Props(new DropwizardLogMetricsRecorder(metricRegistry, namePrefix, logActor, pollMetricsMinDelay))
 }
