@@ -89,6 +89,12 @@ libraryDependencies ++= Seq(
   "com.rbmhtechnology.eventuate-tools" %% "log-viewer" % "<version>"
   // your dependencies ...
 )
+
+// for snapshots
+resolvers += "OJO Snapshots" at "https://oss.jfrog.org/oss-snapshot-local"
+
+// for releases
+resolvers += "OJO Releases" at "https://oss.jfrog.org/oss-release-local"
 ```
 
 and use sbt-native-packager in a similar manner as log-viewer does:

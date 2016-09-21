@@ -5,8 +5,8 @@ eventuate-tool's dropwizard-metrics provides [`Gauge`s](http://metrics.dropwizar
 that returns
 metrics of an [`ReplicationEndpoint`](http://rbmhtechnology.github.io/eventuate/reference/event-log.html#replication-endpoints). 
 
-Add dependency to project
--------------------------
+Project dependency
+------------------
 
 The following artifact is published to [jfrog's](https://oss.jfrog.org/) snapshot and release repository:
 
@@ -17,8 +17,10 @@ Settings for an sbt-build:
 
 ```scala
 libraryDependencies += "com.rbmhtechnology.eventuate-tools" %% "dropwizard-metrics" % "<version>"
+
 // for snapshots
 resolvers += "OJO Snapshots" at "https://oss.jfrog.org/oss-snapshot-local"
+
 // for releases
 resolvers += "OJO Releases" at "https://oss.jfrog.org/oss-release-local"
 
