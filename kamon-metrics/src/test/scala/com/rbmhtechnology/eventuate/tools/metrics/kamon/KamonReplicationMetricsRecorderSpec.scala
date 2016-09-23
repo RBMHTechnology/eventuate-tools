@@ -21,21 +21,21 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 
-class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with EventuallyWithDefaultTiming with BeforeAndAfterAll {
+class KamonReplicationMetricsRecorderSpec extends WordSpec with Matchers with EventuallyWithDefaultTiming with BeforeAndAfterAll {
 
-  import KamonReplicationEndpointMetricsSpec._
+  import KamonReplicationMetricsRecorderSpec._
 
   override protected def beforeAll(): Unit = Kamon.start()
 
-  "KamonReplicationEndpointMetrics.startRecording" when {
-    "called for an ReplicationEndpoint" must {
+  "KamonReplicationMetricsRecoder" when {
+    "initialized for an ReplicationEndpoint" must {
       "record metrics for all logs of the endpoint" in {
         val logNames = Set("log1", "log2")
         withBidirectionalReplicationEndpoints(logNames, aFilters = sourceFilters(logNames.map(_ -> evenFilter).toMap), bFilters = sourceFilters(logNames.map(_ -> oddFilter).toMap)) {
           (endpointA, endpointB) =>
             val logIds = logNames.map(endpointA.logId) zip logNames.map(endpointB.logId)
-            new KamonReplicationEndpointMetrics(endpointA)
-            new KamonReplicationEndpointMetrics(endpointB)
+            new KamonReplicationMetricsRecorder(endpointA)
+            new KamonReplicationMetricsRecorder(endpointB)
 
             logNames.foreach(eventInspector(endpointA, _).emitAndWait(1 to 3))
 
@@ -76,10 +76,10 @@ class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with Ev
     }
   }
 
-  "KamonMetrics.stopRecording" when {
+  "KamonReplicationMetricsRecoder.stopRecording" when {
     "called after recording started" must {
       "stop recording metrics" in withBidirectionalReplicationEndpoints() { (endpointA, _) =>
-        val metrics = new KamonReplicationEndpointMetrics(endpointA)
+        val metrics = new KamonReplicationMetricsRecorder(endpointA)
         val subscriber = snapshotSubscriber(endpointA)
         metrics.stopRecording()
         eventInspector(endpointA).emitAndWait(1 to 3)
@@ -105,7 +105,7 @@ class KamonReplicationEndpointMetricsSpec extends WordSpec with Matchers with Ev
   }
 }
 
-object KamonReplicationEndpointMetricsSpec {
+object KamonReplicationMetricsRecorderSpec {
 
   def histogramMax(snapshot: EntitySnapshot, name: String) =
     snapshot.histogram(name).map(_.max)

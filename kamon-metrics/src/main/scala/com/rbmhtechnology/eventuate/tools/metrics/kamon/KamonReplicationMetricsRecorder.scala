@@ -19,7 +19,7 @@ import com.rbmhtechnology.eventuate.ReplicationProtocol.ReplicationRead
 import com.rbmhtechnology.eventuate.VectorTime
 import com.rbmhtechnology.eventuate.log.EventLog
 import com.rbmhtechnology.eventuate.log.EventLogClock
-import com.rbmhtechnology.eventuate.tools.metrics.kamon.KamonLogMetrics.KamonLogSettings
+import com.rbmhtechnology.eventuate.tools.metrics.kamon.KamonLogMetricsRecorder.KamonLogSettings
 import com.typesafe.config.Config
 import kamon.Kamon
 
@@ -53,7 +53,7 @@ import scala.concurrent.duration.FiniteDuration
  *                            but only if at least the given time-span has passed after the last
  *                            request.
  */
-class KamonReplicationEndpointMetrics(
+class KamonReplicationMetricsRecorder(
     monitoredEndpoint: ReplicationEndpoint,
     entityNamePrefix: Option[String] = None,
     pollMetricsMinDelay: FiniteDuration = 1.second
@@ -64,7 +64,7 @@ class KamonReplicationEndpointMetrics(
       case (logName, logActor) =>
         val logId = monitoredEndpoint.logId(logName)
         logName -> monitoredEndpoint.system.actorOf(
-          KamonLogMetrics.props(prefixed(logId), logActor, pollMetricsMinDelay),
+          KamonLogMetricsRecorder.props(prefixed(logId), logActor, pollMetricsMinDelay),
           s"KamonMonitor_$logId"
         )
     }
@@ -79,7 +79,7 @@ class KamonReplicationEndpointMetrics(
     s"${entityNamePrefix.getOrElse("")}$suffix"
 }
 
-class KamonLogMetrics private (logId: String, logActor: ActorRef, pollMetricsMinDelay: FiniteDuration) extends Actor {
+private class KamonLogMetricsRecorder private (logId: String, logActor: ActorRef, pollMetricsMinDelay: FiniteDuration) extends Actor {
 
   private val EmptyVector = new VectorTime()
   private val settings = new KamonLogSettings(context.system.settings.config)
@@ -145,7 +145,7 @@ class KamonLogMetrics private (logId: String, logActor: ActorRef, pollMetricsMin
   }
 }
 
-object KamonLogMetrics {
+private object KamonLogMetricsRecorder {
 
   class KamonLogSettings(config: Config) {
     val receiveTimeout =
@@ -153,5 +153,5 @@ object KamonLogMetrics {
   }
 
   def props(entityId: String, logActor: ActorRef, pollMetricsMinDelay: FiniteDuration) =
-    Props(new KamonLogMetrics(entityId, logActor, pollMetricsMinDelay))
+    Props(new KamonLogMetricsRecorder(entityId, logActor, pollMetricsMinDelay))
 }

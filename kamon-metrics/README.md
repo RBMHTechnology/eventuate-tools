@@ -5,15 +5,36 @@ eventuate-tool's kamon-metrics provides
 metrics of any replicated log as [entity](http://kamon.io/core/metrics/core-concepts/) under the category `eventuate-replicated-log` 
 using kamon's histograms as basis [recording instruments](http://kamon.io/core/metrics/instruments/).
 
+Project dependency
+------------------
+
+The following artifact is published to [jfrog's](https://oss.jfrog.org/) snapshot and release repository:
+
+- Artifact Id: `kamon-metrics_<scala-version>`
+- Group Name: `com.rbmhtechnology.eventuate-tools`
+
+Settings for an sbt-build:
+
+```scala
+libraryDependencies += "com.rbmhtechnology.eventuate-tools" %% "kamon-metrics" % "<version>"
+
+// for snapshots
+resolvers += "OJO Snapshots" at "https://oss.jfrog.org/oss-snapshot-local"
+
+// for releases
+resolvers += "OJO Releases" at "https://oss.jfrog.org/oss-release-local"
+
+```
+
 Start/Stop recording metrics
 ----------------------------
 
-Initially a `KamonReplicationEndpointMetrics` has to initialized with the `ReplicationEndpoint` to 
+Initially a `KamonReplicationMetricsRecorder` has to be initialized with the `ReplicationEndpoint` to 
 be monitored and optionally a entity-name-prefix:
 
 ```scala
 val endpoint = new ReplicationEndpoint(...)
-val metrics = new KamonReplicationEndpointMetrics(endpoint, Some("prefix."))
+val metrics = new KamonReplicationMetricsRecorder(endpoint, Some("prefix."))
 ```
 
 Recording of metrics starts immediately and can be stopped with:

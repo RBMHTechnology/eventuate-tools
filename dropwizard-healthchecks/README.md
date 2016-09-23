@@ -14,6 +14,29 @@ The following can be monitored:
 - health of Eventuate's actors based on akka's 
   [death watch](http://doc.akka.io/docs/akka/2.4/general/supervision.html#What_Lifecycle_Monitoring_Means)
   
+
+Project dependency
+------------------
+
+The following artifact is published to [jfrog's](https://oss.jfrog.org/) snapshot and release repository:
+
+- Artifact Id: `dropwizard-healthchecks_<scala-version>`
+- Group Name: `com.rbmhtechnology.eventuate-tools`
+
+Settings for an sbt-build:
+
+```scala
+libraryDependencies += "com.rbmhtechnology.eventuate-tools" %% "dropwizard-healthchecks" % "<version>"
+
+// for snapshots
+resolvers += "OJO Snapshots" at "https://oss.jfrog.org/oss-snapshot-local"
+
+// for releases
+resolvers += "OJO Releases" at "https://oss.jfrog.org/oss-release-local"
+
+```
+
+
 Register with HealthCheckRegistry
 ---------------------------------
 
