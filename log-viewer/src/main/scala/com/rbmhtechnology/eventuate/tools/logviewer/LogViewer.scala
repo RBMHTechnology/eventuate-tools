@@ -16,45 +16,24 @@
 
 package com.rbmhtechnology.eventuate.tools.logviewer
 
-import akka.actor.ActorPath
 import akka.actor.ActorSelection
 import akka.actor.ActorSystem
-import akka.actor.ExtendedActorSystem
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.ParameterException
 import com.rbmhtechnology.eventuate.DurableEvent
-import com.rbmhtechnology.eventuate.ReplicationConnection
+import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReader.acceptorOf
+import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReader.actorSystemBindingTo
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReader.readEventsAndDo
-import com.typesafe.config.ConfigFactory
 
 object LogViewer extends App {
 
   private val params: LogViewerParameters = parseCommandLineArgs(args)
   import params._
 
-  private implicit val system: ActorSystem = ActorSystem(
-    ReplicationConnection.DefaultRemoteSystemName,
-    ConfigFactory.parseString(
-      s"""
-        |akka {
-        |  remote.netty.tcp {
-        |    hostname = "$localAddress"
-        |    port = $localPort
-        |  }
-        |  actor.provider = akka.remote.RemoteActorRefProvider
-        |  loglevel = WARNING
-        |}
-      """.stripMargin
-    ).withFallback(ConfigFactory.load())
-  )
-
-  private val acceptor: ActorSelection = system.actorSelection(remoteActorPath(
-    akkaProtocol(system),
-    ReplicationConnection(remoteHost, remotePort, remoteSystemName),
-    "acceptor"
-  ))
-
   private val eventFormatter = new CaseClassFormatter[DurableEvent](eventFormatString)
+
+  private implicit val system: ActorSystem = actorSystemBindingTo(localAddress, localPort)
+  private val acceptor: ActorSelection = acceptorOf(remoteHost, remotePort, remoteSystemName)
 
   readEventsAndDo(acceptor, logName, fromSequenceNr, maxEvents, batchSize, scanLimit) {
     event => println(eventFormatter.format(event))
@@ -62,18 +41,6 @@ object LogViewer extends App {
     _.printStackTrace()
   } {
     system.terminate()
-  }
-
-  private[logviewer] def remoteActorPath(protocol: String, connectionInfo: ReplicationConnection, actorName: String): ActorPath =
-    ActorPath.fromString(s"$protocol://${connectionInfo.name}@${connectionInfo.host}:${connectionInfo.port}/user/$actorName")
-
-  /**
-   * Return the protocol used by the given ActorSystem,
-   * if the ActorSystem is an ExtendedActorSystem and "akka.tcp" as default otherwise.
-   */
-  private[logviewer] def akkaProtocol(system: ActorSystem): String = system match {
-    case sys: ExtendedActorSystem => sys.provider.getDefaultAddress.protocol
-    case _                        => "akka.tcp"
   }
 
   private def parseCommandLineArgs(args: Array[String]): LogViewerParameters = {

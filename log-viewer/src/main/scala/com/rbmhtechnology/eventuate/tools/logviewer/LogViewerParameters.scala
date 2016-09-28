@@ -65,7 +65,7 @@ class LogViewerParameters {
 
   @Parameter(
     names = Array("--localBindAddress", "-lh"),
-    description = "akka-bind-address of the log-viewer"
+    description = "akka-bind-address of the log-viewer (empty means InetAddress.getLocalHost.getHostAddress)"
   )
   var localAddress: String = ""
 
