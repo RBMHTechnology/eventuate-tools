@@ -53,6 +53,38 @@ log-viewer -Dconfig.file=path/serializer.conf ...
 
 log-viewer comes with a usage page when called with command line option `--help`.
 
+### Event formatting and filtering
+
+log-viewer allows to specify a format string for printing retrieved events in a desired 
+format. There are actually two types of _template engines_ that can be selected by the command 
+line option `--eventFormatter`:
+
+- `CaseClass`: Allows to specify a simple `java.util.Formatter`-like template to 
+  select specific fields of a 
+  [`DurableEvent`](http://rbmhtechnology.github.io/eventuate/latest/api/index.html#com.rbmhtechnology.eventuate.DurableEvent).
+  It does not support filtering nor selecting details of the payload so fomatting is limitted to 
+  the direct fields of an `DurableEvent`. Check `--help` for more details.
+  
+- `Velocity`: Allows to specify a 
+  [Velocity](http://velocity.apache.org/engine/1.7/user-guide.html) template. As Velocity 
+  supports conditional expressions this can also be used to filter events and display only those 
+  that match a certain criterion. The velocity template has access to two variables:
+  
+  - `ev` referencing the `DurableEvent`
+  - `nl` referencing a line separator
+  
+  The following exmaple template assumes the payload class:
+  ```
+  case class CustomEvent(a:Int, b:String)
+  ```
+  With this a filtering template could be defined as:
+  ```
+  #if($ev.payload().a() > 10)$ev.payload().b()$nl#end
+  ``` 
+  This would display only `b` of events with
+  `a > 10`. Note the `$nl` within the if expression at the end of the template string. Without it
+  all events would be printed in a single line. If it were outside of the if expression a filtered 
+  event would still be displayed as an empty line.
 
 Alternative ways to start log-viewer
 -------------------------------------------
@@ -113,6 +145,38 @@ publish <<= publish dependsOn (publish in Universal)
 publishLocal <<= publishLocal dependsOn (publishLocal in Universal)
 ```
 
+
+Trouble Shooting
+----------------
+
+If the log-viewer cannot connect to the remote application (even if it is up and running) it 
+runs into an ask timeout like follows:
+    
+```
+akka.pattern.AskTimeoutException: Ask timed out on [ActorSelection[Anchor(akka.tcp://location@localhost:2552/), Path(/user/acceptor)]] after [15000 ms]. Sender[null] sent message of type "com.rbmhtechnology.eventuate.ReplicationProtocol$GetReplicationEndpointInfo$".
+```
+
+This is typically caused by wrong network configuration. The remote host (`--remoteHost`) must be
+the identical name or IP that is used by the remote application's remoting config 
+(`akka.remote.netty.tcp.hostname`). If for example the remote application uses `127.0.0.1` 
+log-viewer cannot connect with `-rh localhost`. In that case you should see in the log-file of 
+the remote application something like the following:
+
+```
+10:45:20.089 [location-akka.actor.default-dispatcher-27] ERROR akka.remote.EndpointWriter - dropping message [class akka.actor.ActorSelectionMessage] for non-local recipient [Actor[akka.tcp://location@localhost:2552/]] arriving at [akka.tcp://location@localhost:2552] inbound addresses are [akka.tcp://location@127.0.0.1:2552]
+10:45:34.955 [location-akka.actor.default-dispatcher-26] ERROR akka.remote.EndpointWriter - AssociationError [akka.tcp://location@127.0.0.1:2552] <- [akka.tcp://location@192.168.0.36:50550]: Error [Shut down address: akka.tcp://location@192.168.0.36:50550] [
+akka.remote.ShutDownAssociation: Shut down address: akka.tcp://location@192.168.0.36:50550
+Caused by: akka.remote.transport.Transport$InvalidAssociationException: The remote system terminated the association because it is shutting down.
+]
+```
+
+The check for the name is even case sensitive!
+
+The local bind address (`--localBindAddress`) must be accessible for the remote host. If you 
+specify for example the name of your local host the remote application must be able to resolve this 
+name.  
+  
+  
 
 Current Limitations
 -------------------

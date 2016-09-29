@@ -18,48 +18,33 @@ package com.rbmhtechnology.eventuate.tools.logviewer
 
 import akka.actor.ActorSelection
 import akka.actor.ActorSystem
-import com.beust.jcommander.JCommander
-import com.beust.jcommander.ParameterException
-import com.rbmhtechnology.eventuate.DurableEvent
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReader.acceptorOf
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReader.actorSystemBindingTo
 import com.rbmhtechnology.eventuate.tools.logviewer.RemoteEventReader.readEventsAndDo
 
 object LogViewer extends App {
 
-  private val params: LogViewerParameters = parseCommandLineArgs(args)
-  import params._
-
-  private val eventFormatter = new CaseClassFormatter[DurableEvent](eventFormatString)
-
-  private implicit val system: ActorSystem = actorSystemBindingTo(localAddress, localPort)
-  private val acceptor: ActorSelection = acceptorOf(remoteHost, remotePort, remoteSystemName)
-
-  readEventsAndDo(acceptor, logName, fromSequenceNr, maxEvents, batchSize, scanLimit) {
-    event => println(eventFormatter.format(event))
-  } {
-    _.printStackTrace()
-  } {
-    system.terminate()
+  LogViewerParameters.parseCommandLineArgs("log-viewer", args) match {
+    case Right(params) => viewLog(params)
+    case Left((usage, returnCode)) =>
+      println(usage)
+      sys.exit(returnCode)
   }
 
-  private def parseCommandLineArgs(args: Array[String]): LogViewerParameters = {
-    val jCommander = new JCommander()
-    jCommander.setProgramName("log-viewer")
-    val params = new LogViewerParameters()
-    jCommander.addObject(params)
-    try {
-      jCommander.parse(args: _*)
-      if (params.help) {
-        jCommander.usage()
-        sys.exit()
-      }
-      params
-    } catch {
-      case ex: ParameterException =>
-        println(ex.getMessage)
-        jCommander.usage()
-        sys.exit(1)
+  private def viewLog(params: LogViewerParameters): Unit = {
+    import params._
+
+    val formatter = DurableEventFormatter(eventFormatter, eventFormatString)
+
+    implicit val system: ActorSystem = actorSystemBindingTo(localAddress, localPort)
+    val acceptor: ActorSelection = acceptorOf(remoteHost, remotePort, remoteSystemName)
+
+    readEventsAndDo(acceptor, logName, fromSequenceNr, maxEvents, batchSize, scanLimit) {
+      event => print(formatter.format(event))
+    } {
+      _.printStackTrace()
+    } {
+      system.terminate()
     }
   }
 }
