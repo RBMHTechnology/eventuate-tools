@@ -5,7 +5,7 @@ import com.rbmhtechnology.eventuate.ReplicationEndpoint
 
 class ReplicationEndpointHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: Option[String] = None) {
   private val actorMonitor = new ActorHealthMonitor(endpoint, healthRegistry, namePrefix)
-  private val persistenceMonitor = new PersistenceHealthMonitor(endpoint, healthRegistry, namePrefix)
+  private val circuitBreakerMonitor = new CircuitBreakerHealthMonitor(endpoint, healthRegistry, namePrefix)
   private val replicationMonitor = new ReplicationHealthMonitor(endpoint, healthRegistry, namePrefix)
 
   /**
@@ -13,7 +13,7 @@ class ReplicationEndpointHealthMonitor(endpoint: ReplicationEndpoint, healthRegi
    */
   def stopMonitoring(): Unit = {
     actorMonitor.stopMonitoring()
-    persistenceMonitor.stopMonitoring()
+    circuitBreakerMonitor.stopMonitoring()
     replicationMonitor.stopMonitoring()
   }
 }
