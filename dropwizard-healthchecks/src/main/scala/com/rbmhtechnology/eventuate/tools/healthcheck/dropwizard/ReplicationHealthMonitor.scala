@@ -61,5 +61,21 @@ object ReplicationHealthMonitor {
     def this(unavailable: Unavailable) = this(unavailable.endpointId, unavailable.logName, unavailable.causes)
   }
 
+  /**
+   * The exception that is reported if the monitoring actor stops prematurely
+   * (without being stopped through [[ReplicationHealthMonitor.stopMonitoring()]]).
+   */
   object UnknownReplicationStateException extends MonitorActorStoppedPrematurelyException("Replication")
+
+  /**
+   * Create a [[ReplicationHealthMonitor]] with the given parameters.
+   */
+  def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: String) =
+    new ReplicationHealthMonitor(endpoint, healthRegistry, Option(namePrefix))
+
+  /**
+   * Create a [[ReplicationHealthMonitor]] with the given parameters.
+   */
+  def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry) =
+    new ReplicationHealthMonitor(endpoint, healthRegistry)
 }

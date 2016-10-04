@@ -127,4 +127,16 @@ object ActorHealthMonitor {
    */
   object UnknownAcceptorActorStateException
     extends MonitorActorStoppedPrematurelyException(s"Acceptor actor")
+
+  /**
+   * Create a [[ActorHealthMonitor]] with the given parameters.
+   */
+  def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: String) =
+    new ActorHealthMonitor(endpoint, healthRegistry, Option(namePrefix))
+
+  /**
+   * Create a [[ActorHealthMonitor]] with the given parameters.
+   */
+  def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry) =
+    new ActorHealthMonitor(endpoint, healthRegistry)
 }
