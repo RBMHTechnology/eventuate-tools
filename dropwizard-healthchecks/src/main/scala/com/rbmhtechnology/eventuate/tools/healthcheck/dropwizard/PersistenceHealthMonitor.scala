@@ -11,6 +11,7 @@ import com.rbmhtechnology.eventuate.log.CircuitBreaker.ServiceNormal
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.HealthRegistryName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.UnhealthyCause
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.monitorHealth
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.MonitorActorStoppedPrematurelyException
 
 /**
  * Monitors the connections of the [[ReplicationEndpoint]]
@@ -34,7 +35,7 @@ class PersistenceHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: He
   }
 
   private val monitorActor =
-    monitorHealth[ServiceNormal, ServiceFailed](endpoint.system, healthRegistry, namePrefix)
+    monitorHealth[ServiceNormal, ServiceFailed](endpoint.system, healthRegistry, UnknownPersistenceStateException, namePrefix)
 
   /**
    * Stop monitoring persistence health and de-register health checks (asynchronously).
@@ -48,4 +49,6 @@ object PersistenceHealthMonitor {
    * for the connection to an [[EventLog]]'s persistence backend is registered.
    */
   def healthName(logId: String): String = s"persistence-of.$logId"
+
+  object UnknownPersistenceStateException extends MonitorActorStoppedPrematurelyException("Persistence")
 }

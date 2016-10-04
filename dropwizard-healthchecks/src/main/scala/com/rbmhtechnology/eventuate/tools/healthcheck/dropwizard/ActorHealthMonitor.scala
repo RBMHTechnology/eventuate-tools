@@ -1,7 +1,5 @@
 package com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard
 
-import akka.actor.Actor
-import akka.actor.PoisonPill
 import akka.actor.Props
 import akka.actor.Terminated
 import com.codahale.metrics.health.HealthCheck
@@ -11,11 +9,15 @@ import com.rbmhtechnology.eventuate.log.EventLog
 import com.rbmhtechnology.eventuate.ReplicationEndpoint
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.AcceptorActorTerminatedException
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.EventLogActorTerminatedException
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.UnknownAcceptorActorStateException
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.UnknownEventLogActorStateException
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.acceptorActorHealthName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.logActorHealthName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.HealthCheckRegistries._
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.MonitorActorStoppedPrematurelyException
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.StopMonitoring
 
-private class ActorHealthMonitorActor(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: Option[String]) extends Actor {
+private class ActorHealthMonitorActor(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: Option[String]) extends StoppableHealthMonitorActor {
 
   override def preStart(): Unit = {
     super.preStart()
@@ -28,13 +30,7 @@ private class ActorHealthMonitorActor(endpoint: ReplicationEndpoint, healthRegis
     context.watch(endpoint.acceptor)
   }
 
-  override def postStop(): Unit = {
-    endpoint.logNames.foreach(logName => healthRegistry.unregister(logHealthRegistryName(endpoint.logId(logName))))
-    healthRegistry.unregister(acceptorHealthRegistryName)
-    super.postStop()
-  }
-
-  override def receive: Receive = {
+  override def receive: Receive = receiveStop orElse {
     case Terminated(actorRef) if actorRef == endpoint.acceptor =>
       healthRegistry.registerUnhealthy(acceptorHealthRegistryName, AcceptorActorTerminatedException)
     case Terminated(actorRef) =>
@@ -47,6 +43,20 @@ private class ActorHealthMonitorActor(endpoint: ReplicationEndpoint, healthRegis
           )
       }
   }
+
+  override protected def monitoringStoppedPrematurely(): Unit = {
+    foreachLogId { logId =>
+      healthRegistry.registerUnhealthy(logHealthRegistryName(logId), new UnknownEventLogActorStateException(logId))
+    }
+    healthRegistry.registerUnhealthy(acceptorHealthRegistryName, UnknownAcceptorActorStateException)
+  }
+
+  override protected def stopMonitoring(): Unit = {
+    foreachLogId(logId => healthRegistry.unregister(logHealthRegistryName(logId)))
+    healthRegistry.unregister(acceptorHealthRegistryName)
+  }
+
+  private def foreachLogId(f: String => Unit): Unit = endpoint.logNames.foreach(endpoint.logId _ andThen f)
 
   private def logHealthRegistryName(logId: String): String =
     optionallyPrefixed(logActorHealthName(logId), namePrefix)
@@ -69,13 +79,14 @@ private object ActorHealthMonitorActor {
  */
 class ActorHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: Option[String] = None) {
   private val monitorActor = endpoint.system.actorOf(
-    ActorHealthMonitorActor.props(endpoint, healthRegistry, namePrefix)
+    ActorHealthMonitorActor.props(endpoint, healthRegistry, namePrefix),
+    "eventuate-actor-health-monitor"
   )
 
   /**
    * Stop monitoring actor health and de-register health checks (asynchronously).
    */
-  def stopMonitoring(): Unit = monitorActor ! PoisonPill
+  def stopMonitoring(): Unit = monitorActor ! StopMonitoring
 }
 
 object ActorHealthMonitor {
@@ -102,4 +113,18 @@ object ActorHealthMonitor {
    * The exception of an unhealthy [[HealthCheck.Result]] for a terminated acceptor actors.
    */
   object AcceptorActorTerminatedException extends IllegalStateException("Acceptor actor terminated")
+
+  /**
+   * Exception of an unhealthy [[HealthCheck.Result]] for an [[EventLog]] actor whose state is
+   * unknown as the monitoring system ended prematurely.
+   */
+  class UnknownEventLogActorStateException(logId: String)
+    extends MonitorActorStoppedPrematurelyException(s"EventLogActor of log with id $logId")
+
+  /**
+   * Exception of an unhealthy [[HealthCheck.Result]] for an acceptor actor whose state is
+   * unknown as the monitoring system ended prematurely.
+   */
+  object UnknownAcceptorActorStateException
+    extends MonitorActorStoppedPrematurelyException(s"Acceptor actor")
 }

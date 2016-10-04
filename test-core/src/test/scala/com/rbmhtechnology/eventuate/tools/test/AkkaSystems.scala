@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorSystem
 import akka.actor.Address
 import akka.actor.ExtendedActorSystem
+import com.rbmhtechnology.eventuate.ReplicationConnection.DefaultRemoteSystemName
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 
@@ -37,7 +38,7 @@ object AkkaSystems {
     }
   }
 
-  def newUniqueSystemName: String = s"default${akkaSystemCounter.getAndIncrement()}"
+  def newUniqueSystemName: String = s"$DefaultRemoteSystemName${akkaSystemCounter.getAndIncrement()}"
 
   def akkaAddress(system: ActorSystem): Address = system match {
     case sys: ExtendedActorSystem => sys.provider.getDefaultAddress
