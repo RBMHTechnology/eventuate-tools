@@ -8,7 +8,7 @@ The following can be monitored:
 - health of the replication from remote source logs based on 
   [Available/Unavailable](http://rbmhtechnology.github.io/eventuate/reference/event-log.html#failure-detection) 
   messages.
-- health of the connection to the storage backend for persisting events based on information from an
+- health of the connection to the storage backend for persisting new events based on information from an
   event-log's 
   [circuit breaker](http://rbmhtechnology.github.io/eventuate/reference/event-sourcing.html?highlight=circuitbreaker#circuit-breaker).
 - health of Eventuate's actors based on akka's 
@@ -47,9 +47,9 @@ health checks can be registered under a given optional prefix (`namePrefix`) for
   ```scala
   val monitor = new ReplicationHealthMonitor(endpoint, healthRegistry, namePrefix)
   ```
-- persistence health:
+- circuit breaker health:
   ```scala
-  val monitor = new PersistenceHealthMonitor(endpoint, healthRegistry, namePrefix)
+  val monitor = new CircuitBreakerHealthMonitor(endpoint, healthRegistry, namePrefix)
   ```
 - actor health:
   ```scala
@@ -86,11 +86,14 @@ For a given prefix the individual monitors register the following health checks:
   to _healthy_ when a corresponding `Available` message arrives. See also the 
   [corresponding section](http://rbmhtechnology.github.io/eventuate/reference/event-log.html#failure-detection)
   in the Eventuate documentation.
-- `PersistenceHealthMonitor` registers for each local log that uses a circuit breaker:
+- `CircuitBreakerHealthMonitor` registers for each local log: 
   ```
-  <prefix>.persistence-of.<log-id>
+  <prefix>.circuit-breaker-of.<log-id>
   ```
-  This turns _unhealthy_ as soon as the circuit breaker opens and _healthy_ when it closes.
+  This turns _unhealthy_ as soon as the circuit breaker opens and _healthy_ when it closes. Currently 
+  only the 
+  [`CassandraEventLog`](http://rbmhtechnology.github.io/eventuate/reference/event-log.html#cassandra-storage-backend)
+  uses the circuit breaker and it only applies when persisting of locally emitted events fails. 
 - `ActorHealthMonitor` registers for each local log:
   ```
   <prefix>.actor.eventlog.<log-id>

@@ -7,28 +7,27 @@ import com.codahale.metrics.health.HealthCheckRegistry
 import com.rbmhtechnology.eventuate.log.CircuitBreaker
 import com.rbmhtechnology.eventuate.log.CircuitBreaker.ServiceFailed
 import com.rbmhtechnology.eventuate.log.CircuitBreaker.ServiceNormal
-import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.PersistenceHealthMonitor.healthName
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.CircuitBreakerHealthMonitor.healthName
 import com.rbmhtechnology.eventuate.tools.test.AkkaSystems.withActorSystem
 import com.rbmhtechnology.eventuate.tools.test.EventuallyWithDefaultTiming
-import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints
+import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.replicationEndpoint
 import com.typesafe.config.ConfigFactory
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
 
-class PersistenceHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithDefaultTiming {
+class CircuitBreakerHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithDefaultTiming {
 
-  import PersistenceHealthMonitorSpec._
+  import CircuitBreakerHealthMonitorSpec._
 
-  "PersistenceHealthMonitor" when {
+  "CircuitBreakerHealthMonitor" when {
     "an EventLog's circuit breaker opens/closes" must {
-      "report the event-log persistence as unhealthy/healthy" in
+      "report the circuit breaker as unhealthy/healthy" in
         withActorSystem(circuitBreakerOpenAfterRetriesConfig(CircuitBreakerOpenAfterRetries)) { implicit system =>
-          val eventLogFactory = (logId: String) => Props(new CircuitBreaker(testEventLogProps, batching = true))
           val healthRegistry = new HealthCheckRegistry()
-          val endpoint = ReplicationEndpoints.replicationEndpoint(logFactory = eventLogFactory)
+          val endpoint = replicationEndpoint(logFactory = _ => testEventLogWithCircuitBreakerProps)
           val (logName, eventLog) = endpoint.logs.head
           val logId = endpoint.logId(logName)
-          new PersistenceHealthMonitor(endpoint, healthRegistry)
+          new CircuitBreakerHealthMonitor(endpoint, healthRegistry)
 
           eventLog ! ServiceFailed(logId, CircuitBreakerOpenAfterRetries, InitialCause)
 
@@ -43,10 +42,23 @@ class PersistenceHealthMonitorSpec extends WordSpec with Matchers with Eventuall
           }
         }
     }
+    "initialized" must {
+      "report the circuit breaker as healthy" in withActorSystem() { implicit system =>
+        val healthRegistry = new HealthCheckRegistry()
+        val endpoint = replicationEndpoint(logFactory = _ => testEventLogWithCircuitBreakerProps)
+
+        new CircuitBreakerHealthMonitor(endpoint, healthRegistry)
+
+        val logId = endpoint.logId(endpoint.logNames.head)
+        eventually {
+          healthRegistry.runHealthCheck(healthName(logId)) shouldBe Result.healthy()
+        }
+      }
+    }
   }
 }
 
-private object PersistenceHealthMonitorSpec {
+private object CircuitBreakerHealthMonitorSpec {
 
   val CircuitBreakerOpenAfterRetries = 1
 
@@ -57,7 +69,7 @@ private object PersistenceHealthMonitorSpec {
 
   val InitialCause = new RuntimeException("Test Write Failure")
 
-  def testEventLogProps = Props[TestEventLog]
+  def testEventLogWithCircuitBreakerProps = Props(new CircuitBreaker(Props[TestEventLog], batching = true))
 
   class TestEventLog extends Actor {
     override def receive: Receive = Actor.emptyBehavior

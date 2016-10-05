@@ -22,7 +22,9 @@ class ReplicationEndpointHealthMonitorSpec extends WordSpec with Matchers with E
       val prefix = Some("prefix")
       val monitor = new ReplicationEndpointHealthMonitor(monitoredEndpoint, healthRegistry, prefix)
 
-      val expectedHealthNames = actorHealthNames(monitoredEndpoint) ++ replicationHealthNames(remoteEndpoint)
+      val expectedHealthNames = actorHealthNames(monitoredEndpoint) ++
+        circuitBreakerHealthNames(monitoredEndpoint) ++
+        replicationHealthNames(remoteEndpoint)
       eventually {
         healthRegistry.getNames.asScala shouldBe expectedHealthNames.map(optionallyPrefixed(_, prefix))
       }
@@ -40,7 +42,9 @@ class ReplicationEndpointHealthMonitorSpec extends WordSpec with Matchers with E
         val healthRegistry = new HealthCheckRegistry
         val monitor = new ReplicationEndpointHealthMonitor(monitoredEndpoint, healthRegistry)
 
-        val expectedHealthNames = actorHealthNames(monitoredEndpoint) ++ replicationHealthNames(remoteEndpoint)
+        val expectedHealthNames = actorHealthNames(monitoredEndpoint) ++
+          circuitBreakerHealthNames(monitoredEndpoint) ++
+          replicationHealthNames(remoteEndpoint)
         eventually {
           healthRegistry.getNames.asScala shouldBe expectedHealthNames
         }
@@ -65,4 +69,7 @@ object ReplicationEndpointHealthMonitorSpec {
 
   def replicationHealthNames(endpoint: ReplicationEndpoint): Set[String] =
     endpoint.logNames.map(logName => ReplicationHealthMonitor.healthName(endpoint.id, logName))
+
+  def circuitBreakerHealthNames(endpoint: ReplicationEndpoint): Set[String] =
+    endpoint.logNames.map(logName => CircuitBreakerHealthMonitor.healthName(endpoint.logId(logName)))
 }
