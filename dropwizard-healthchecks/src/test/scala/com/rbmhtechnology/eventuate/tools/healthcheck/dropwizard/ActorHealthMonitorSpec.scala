@@ -3,22 +3,25 @@ package com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard
 import akka.actor.PoisonPill
 import com.codahale.metrics.health.HealthCheck.Result.healthy
 import com.codahale.metrics.health.HealthCheckRegistry
+import com.rbmhtechnology.eventuate.ReplicationEndpoint.DefaultLogName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.AcceptorActorTerminatedException
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.EventLogActorTerminatedException
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.UnknownEventLogActorStateException
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.acceptorActorHealthName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.ActorHealthMonitor.logActorHealthName
 import com.rbmhtechnology.eventuate.tools.test.EventuallyWithDefaultTiming
 import com.rbmhtechnology.eventuate.tools.test.ReplicationEndpoints.withLevelDbReplicationEndpoint
 import org.scalatest.Matchers
 import org.scalatest.WordSpec
+import org.scalatest.concurrent.ScalaFutures
 
-class ActorHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithDefaultTiming {
+class ActorHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithDefaultTiming with ScalaFutures {
 
   import ActorHealthMonitorSpec._
 
   "ActorMonitor" when {
     "all EventLog actors are up" must {
-      "Report healthy for each" in {
+      "report healthy for each" in {
         withLevelDbReplicationEndpoint(LogNames) { endpoint =>
           val healthRegistry = new HealthCheckRegistry()
           new ActorHealthMonitor(endpoint, healthRegistry)
@@ -31,7 +34,7 @@ class ActorHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithD
       }
     }
     "an EventLog actors terminate" must {
-      "Report unhealthy for that and healthy for all others" in {
+      "report unhealthy for that and healthy for all others" in {
         withLevelDbReplicationEndpoint(LogNames) { endpoint =>
           val healthRegistry = new HealthCheckRegistry()
           new ActorHealthMonitor(endpoint, healthRegistry)
@@ -44,7 +47,7 @@ class ActorHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithD
       }
     }
     "the Acceptor actor is up" must {
-      "Report healthy for that" in {
+      "report healthy for that" in {
         withLevelDbReplicationEndpoint() { endpoint =>
           val healthRegistry = new HealthCheckRegistry()
           new ActorHealthMonitor(endpoint, healthRegistry)
@@ -55,7 +58,7 @@ class ActorHealthMonitorSpec extends WordSpec with Matchers with EventuallyWithD
       }
     }
     "the Acceptor actor terminates" must {
-      "Report unhealthy for that" in {
+      "report unhealthy for that" in {
         withLevelDbReplicationEndpoint() { endpoint =>
           val healthRegistry = new HealthCheckRegistry()
           new ActorHealthMonitor(endpoint, healthRegistry)

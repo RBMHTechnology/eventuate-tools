@@ -1,6 +1,5 @@
 package com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard
 
-import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.actor.Props
@@ -15,14 +14,14 @@ import scala.reflect.ClassTag
 import scala.reflect.classTag
 
 private class AvailabilityMonitor[Available: ClassTag: HealthRegistryName, Unavailable: ClassTag: HealthRegistryName: UnhealthyCause](
-    healthRegistry: HealthCheckRegistry, namePrefix: Option[String]
-) extends Actor {
+    healthRegistry: HealthCheckRegistry, monitoringStoppedPrematurelyFailure: Exception, namePrefix: Option[String]
+) extends StoppableHealthMonitorActor {
 
   import AvailabilityMonitor._
 
   var healthy: Map[String, Boolean] = Map.empty
 
-  override def receive = {
+  override def receive = receiveStop orElse {
     case unavailable: Unavailable =>
       healthRegistry.registerUnhealthy(optionallyPrefixed(unavailable.healthRegistryName, namePrefix), unavailable.unhealthyCause)
       healthy += (unavailable.healthRegistryName -> false)
@@ -31,10 +30,11 @@ private class AvailabilityMonitor[Available: ClassTag: HealthRegistryName, Unava
       healthRegistry.registerHealthy(optionallyPrefixed(available.healthRegistryName, namePrefix))
   }
 
-  override def postStop(): Unit = {
+  override protected def monitoringStoppedPrematurely(): Unit =
+    healthy.keys.foreach(name => healthRegistry.registerUnhealthy(name, monitoringStoppedPrematurelyFailure))
+
+  override protected def stopMonitoring(): Unit =
     healthy.keys.foreach(name => healthRegistry.unregister(optionallyPrefixed(name, namePrefix)))
-    super.postStop()
-  }
 }
 
 object AvailabilityMonitor {
@@ -64,8 +64,9 @@ object AvailabilityMonitor {
 
   private def props[Available: ClassTag: HealthRegistryName, Unavailable: ClassTag: HealthRegistryName: UnhealthyCause](
     healthRegistry: HealthCheckRegistry,
-    namePrefix: Option[String] = None
-  ) = Props(new AvailabilityMonitor[Available, Unavailable](healthRegistry, namePrefix))
+    namePrefix: Option[String] = None,
+    monitoringStoppedPrematurelyFailure: Exception
+  ) = Props(new AvailabilityMonitor[Available, Unavailable](healthRegistry, monitoringStoppedPrematurelyFailure, namePrefix))
 
   /**
    * Install a generic monitor for (un)-available events published on [[ActorSystem.eventStream]].
@@ -81,9 +82,10 @@ object AvailabilityMonitor {
   def monitorHealth[Available: ClassTag: HealthRegistryName, Unavailable: ClassTag: HealthRegistryName: UnhealthyCause](
     system: ActorSystem,
     healthRegistry: HealthCheckRegistry,
+    monitoringStoppedPrematurelyFailure: Exception,
     namePrefix: Option[String] = None
   ): ActorRef = {
-    val actorRef = system.actorOf(props[Available, Unavailable](healthRegistry, namePrefix))
+    val actorRef = system.actorOf(props[Available, Unavailable](healthRegistry, namePrefix, monitoringStoppedPrematurelyFailure))
     system.eventStream.subscribe(actorRef, classTag[Available].runtimeClass)
     system.eventStream.subscribe(actorRef, classTag[Unavailable].runtimeClass)
     actorRef

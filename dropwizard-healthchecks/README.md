@@ -68,6 +68,11 @@ Health monitoring can be stopped to remove the registered health checks in each 
 monitor.stopMonitoring()
 ```
 
+When the actor system stops without the monitoring being stopped first all registered health checks 
+turn unhealthy and indicate the monitored component in an unknown state. This ensures that in case of an 
+unexpected actor system stop (as for example triggered by Eventuate's cassandra extension, when the
+database cannot be accessed at startup) all components are reported as unhealthy.
+
 Healthcheck names
 -----------------
 
@@ -78,7 +83,9 @@ For a given prefix the individual monitors register the following health checks:
   <prefix>.replication-from.<remote-endpoint-id>.<log-name>
   ```
   This turns _unhealthy_ as soon as an `Unavailable` message for this particular log arrives and back 
-  to _healthy_ when a corresponding `Available` message arrives.
+  to _healthy_ when a corresponding `Available` message arrives. See also the 
+  [corresponding section](http://rbmhtechnology.github.io/eventuate/reference/event-log.html#failure-detection)
+  in the Eventuate documentation.
 - `PersistenceHealthMonitor` registers for each local log that uses a circuit breaker:
   ```
   <prefix>.persistence-of.<log-id>

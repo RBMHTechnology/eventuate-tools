@@ -1,6 +1,5 @@
 package com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard
 
-import akka.actor.PoisonPill
 import com.codahale.metrics.health.HealthCheck
 import com.codahale.metrics.health.HealthCheckRegistry
 import com.rbmhtechnology.eventuate.log.EventLog
@@ -9,6 +8,8 @@ import com.rbmhtechnology.eventuate.ReplicationEndpoint.Available
 import com.rbmhtechnology.eventuate.ReplicationEndpoint.Unavailable
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.HealthRegistryName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.UnhealthyCause
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.MonitorActorStoppedPrematurelyException
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.StopMonitoring
 
 /**
  * Monitors the replication connections of the [[EventLog]]s of the [[ReplicationEndpoint]]
@@ -31,12 +32,12 @@ class ReplicationHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: He
   }
 
   private val monitorActor =
-    AvailabilityMonitor.monitorHealth[Available, Unavailable](endpoint.system, healthRegistry, namePrefix)
+    AvailabilityMonitor.monitorHealth[Available, Unavailable](endpoint.system, healthRegistry, UnknownReplicationStateException, namePrefix)
 
   /**
    * Stop monitoring replication health and de-register health checks (asynchronously).
    */
-  def stopMonitoring(): Unit = monitorActor ! PoisonPill
+  def stopMonitoring(): Unit = monitorActor ! StopMonitoring
 }
 
 object ReplicationHealthMonitor {
@@ -54,9 +55,11 @@ object ReplicationHealthMonitor {
    */
   class ReplicationUnhealthyException(endpointId: String, logName: String, causes: Seq[Throwable])
       extends IllegalStateException(
-        s"Replication of log $logName to endpoint $endpointId failed for the following reasons: ${causes.mkString("\n- ", "\n- ", "\n")}",
+        s"Replication of log $logName from endpoint $endpointId failed for the following reasons: ${causes.mkString("\n- ", "\n- ", "\n")}",
         causes.headOption.orNull
       ) {
     def this(unavailable: Unavailable) = this(unavailable.endpointId, unavailable.logName, unavailable.causes)
   }
+
+  object UnknownReplicationStateException extends MonitorActorStoppedPrematurelyException("Replication")
 }
