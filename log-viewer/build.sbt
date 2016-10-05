@@ -3,8 +3,10 @@ import sbtbuildinfo.BuildInfoPlugin
 
 fork in run := true
 
-libraryDependencies ++=
-    Seq("com.beust" % "jcommander" % "1.48")
+libraryDependencies ++= Seq(
+    "com.beust" % "jcommander" % "1.48",
+    "org.apache.velocity" % "velocity" % "1.7"
+  )
 
 enablePlugins(AutomateHeaderPlugin)
 

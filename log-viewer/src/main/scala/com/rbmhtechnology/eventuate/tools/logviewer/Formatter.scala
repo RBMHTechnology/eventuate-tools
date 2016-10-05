@@ -16,6 +16,32 @@
 
 package com.rbmhtechnology.eventuate.tools.logviewer
 
+import java.io.StringWriter
+
+import com.rbmhtechnology.eventuate.DurableEvent
+import com.rbmhtechnology.eventuate.tools.logviewer.LogViewerParameters.CaseClass
+import com.rbmhtechnology.eventuate.tools.logviewer.LogViewerParameters.FormatterType
+import com.rbmhtechnology.eventuate.tools.logviewer.LogViewerParameters.Velocity
+import org.apache.velocity.VelocityContext
+import org.apache.velocity.app.VelocityEngine
+
+/**
+ * Typeclass for returning a formatted string of an object
+ */
+trait Formatter[A] {
+  def format(a: A): String
+}
+
+object DurableEventFormatter {
+  /**
+   * Returns a [[Formatter]] instance for formatting a [[DurableEvent]]
+   */
+  def apply(formatter: FormatterType, formatString: String): Formatter[DurableEvent] = formatter match {
+    case CaseClass => new CaseClassFormatter[DurableEvent](formatString)
+    case Velocity  => new VelocityFormatter[DurableEvent](formatString, "ev")
+  }
+}
+
 /**
  * Takes a {{java.util.Formatter}} like string to format a `case class`-instance.
  *
@@ -37,7 +63,7 @@ package com.rbmhtechnology.eventuate.tools.logviewer
  *           A's `productIterator` returns the values of A's _fields_ in the same order as
  *           `getDeclaredFields` of A's class.
  */
-class CaseClassFormatter[A <: Product](extendedFormatString: String) {
+class CaseClassFormatter[A <: Product](extendedFormatString: String) extends Formatter[A] {
 
   private val FieldNameGroup = "fieldName"
 
@@ -46,7 +72,7 @@ class CaseClassFormatter[A <: Product](extendedFormatString: String) {
   private val plainFormatString: String =
     fieldNameRegEx.replaceAllIn(extendedFormatString, "%")
 
-  def format(arg: A): String = plainFormatString.format(toFormatArguments(arg): _*)
+  def format(arg: A): String = plainFormatString.format(toFormatArguments(arg): _*) + System.lineSeparator()
 
   private def toFormatArguments(arg: A): Seq[Any] = {
     val fieldValueMap = arg.getClass.getDeclaredFields.map(_.getName).zip(arg.productIterator.to).toMap.withDefault {
@@ -54,5 +80,31 @@ class CaseClassFormatter[A <: Product](extendedFormatString: String) {
       case fieldName => s"[unknown field: $fieldName]"
     }
     fieldNameRegEx.findAllMatchIn(extendedFormatString).map(_.group(FieldNameGroup)).map(fieldValueMap).toList
+  }
+}
+
+/**
+ * A generic [[Formatter]] that formats based on a velocity template. As velocity supports conditional expressions this
+ * could also be used as a ''filter'' if `format` returns an empty string.
+ *
+ * The template may reference two variables:
+ * - the object to be formatted is available under the name as given by the `name` parameter
+ * - a newline can be referenced as `nl`
+ *
+ * @param template a valid velocity template (see also: http://velocity.apache.org/engine/1.7/user-guide.html).
+ * @param name name of the variable that can be used in the template to access the object to be formatted
+ */
+class VelocityFormatter[A](template: String, name: String) extends Formatter[A] {
+
+  private val engine = new VelocityEngine()
+  engine.init()
+
+  override def format(a: A): String = {
+    val context = new VelocityContext()
+    context.put(name, a)
+    context.put("nl", System.lineSeparator())
+    val stringWriter = new StringWriter()
+    engine.evaluate(context, stringWriter, "inline", template)
+    stringWriter.toString
   }
 }
