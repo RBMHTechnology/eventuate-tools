@@ -29,7 +29,7 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
   )
 
   val compileSettings = Seq(
-    scalaVersion := "2.11.7",
+    scalaVersion := "2.11.8",
     javacOptions += "-Xlint:unchecked",
     scalacOptions ++= Seq("-deprecation", "-feature", "-language:existentials", "-language:postfixOps"),
     autoAPIMappings := true
