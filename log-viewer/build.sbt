@@ -34,6 +34,12 @@ publishArtifact in (Test, packageDoc) := false
 
 makeDeploymentSettings(Universal, packageBin in Universal, "zip")
 
-publish <<= publish dependsOn (publish in Universal)
+publish := {
+  (publish in Universal).value
+  publish.value
+}
 
-publishLocal <<= publishLocal dependsOn (publishLocal in Universal)
+publishLocal := {
+  (publishLocal in Universal).value
+  publishLocal.value
+}
