@@ -186,9 +186,7 @@ Current Limitations
   instances including their custom serializers and corresponding configuration in its classpath.
   So you need to customize it before you can run it.
 - The application whose event log is viewed must be up and running.
-- Event formatting with command line option `--event-format` is limited to select fields of a `DurableEvent`.
-  It is impossible to select individual fields of the application defined payload.
-- The event formatting implementation relies on the fact that the `productIterator` of a `case class`
+- The case class based event formatting (`--eventFormatter CaseClass`) implementation relies on the fact that the `productIterator` of a `case class`
   instance returns the values in the same order as `getDeclaredFields` of the corresponding `Class`.
   This is the case for scala 2.11 and JDK 1.8, however it is not guaranteed.
 
