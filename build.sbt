@@ -6,6 +6,9 @@ lazy val dropwizardMetrics = subProject("dropwizard-metrics").dependsOn(testCore
 lazy val kamonMetrics = subProject("kamon-metrics").dependsOn(testCore % "test->test")
 lazy val dropwizardHealth = subProject("dropwizard-healthchecks").dependsOn(testCore % "test->test")
 
+// exclude kamon by default as there is no scala 2.12 build yet
+lazy val root = (project in file(".")).aggregate(testCore, logViewer, dropwizardMetrics, dropwizardHealth)
+
 // release
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,

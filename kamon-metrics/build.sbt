@@ -1,1 +1,1 @@
-libraryDependencies += "io.kamon" %% "kamon-core" % "0.6.0"
+libraryDependencies += "io.kamon" %% "kamon-core" % "0.6.3"

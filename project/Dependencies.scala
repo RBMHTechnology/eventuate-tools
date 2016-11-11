@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val eventuateVersion = "0.8"
+  val eventuateVersion = "0.8.1"
   val akkaVersion = "2.4.12"
   val dropWizardMetricsVersion = "3.1.0"
 
@@ -19,7 +19,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-testkit" % akkaVersion
   )
   lazy val scalaTest = Seq(
-    "org.scalatest" %% "scalatest" % "2.2.6"
+    "org.scalatest" %% "scalatest" % "3.0.0"
   )
   lazy val dropWizardMetrics = Seq(
     dropwizardMetricsGroup % "metrics-core" % dropWizardMetricsVersion
