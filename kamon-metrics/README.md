@@ -26,8 +26,6 @@ resolvers += "OJO Releases" at "https://oss.jfrog.org/oss-release-local"
 
 ```
 
-Note that there is no scala 2.12 build available for this module as it depends on `kamon-core` and 
-there is no scala 2.12 build available for `kamon-core` yet.
 
 Start/Stop recording metrics
 ----------------------------

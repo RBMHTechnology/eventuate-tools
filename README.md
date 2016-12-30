@@ -15,3 +15,5 @@ This repository contains tools that support operating
 - [Dropwizard health checks](dropwizard-healthchecks/README.md): A library providing health checks for
   an replication endpoint based on 
   [dropwizard's health check lib](http://metrics.dropwizard.io/3.1.0/getting-started/#health-checks)
+  
+All libraries are available for scala 2.11 and 2.12.
