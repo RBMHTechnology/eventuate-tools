@@ -7,13 +7,13 @@ cache:
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot/
 script:
-  - if [[ "$TRAVIS_SCALA_VERSION" == 2.11.* ]]; then kamon_tasks="kamon-metrics/test kamon-metrics/package"; else kamon_tasks=""; fi && sbt ++$TRAVIS_SCALA_VERSION test package universal:packageBin $kamon_tasks
+  - sbt ++$TRAVIS_SCALA_VERSION test package universal:packageBin
   - find $HOME/.sbt -name "*.lock" -exec rm {} +
   - find $HOME/.ivy2 -name "ivydata-*.properties" -exec rm {} +
 after_success:
-  - if [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_BRANCH" = master -o -n "$TRAVIS_TAG" ]; then if [[ "$TRAVIS_SCALA_VERSION" == 2.11.* ]]; then kamon_tasks="kamon/publish"; else kamon_tasks=""; fi && sbt ++$TRAVIS_SCALA_VERSION publish $kamon_tasks; fi
+  - if [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_BRANCH" = master -o -n "$TRAVIS_TAG" ]; then sbt ++$TRAVIS_SCALA_VERSION publish fi
 scala:
   - 2.11.8
-  - 2.12.0
+  - 2.12.1
 jdk:
   - oraclejdk8
