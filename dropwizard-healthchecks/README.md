@@ -1,8 +1,8 @@
-Eventuate replication endpoint health information for dropwizard's healthchecks lib
+Eventuate replication endpoint health information for dropwizard's health-checks lib
 ===================================================================================
 
 eventuate-tool's dropwizard-healthchecks provides health monitoring facilities for Eventuate components based on 
-[dropwizard's healthchecks library](http://metrics.dropwizard.io/3.1.0/getting-started/#health-checks).
+[dropwizard's health-checks library](http://metrics.dropwizard.io/3.1.0/getting-started/#health-checks).
 The following can be monitored:
 
 - health of the replication from remote source logs based on 
@@ -73,7 +73,16 @@ turn unhealthy and indicate the monitored component in an unknown state. This en
 unexpected actor system stop (as for example triggered by Eventuate's cassandra extension, when the
 database cannot be accessed at startup) all components are reported as unhealthy.
 
-Healthcheck names
+By default the `ReplicationHealthMonitor` does not report the health status for the replication from remote logs where 
+the connection could not yet be established as the health monitoring is based on Eventuate's 
+`Available` and `Unavailable` notifications that are only sent if an initial connect was successful.
+The `ReplicationHealthMonitor` can be initialized with an 
+optional parameter `initiallyUnhealty` that takes a set of log-ids of remote logs whose replication status
+shall be reported as unhealthy initially (because the connection can not be established) until 
+the first `Available` is received. As Eventuate internally does not know the endpoint ids of remote 
+endpoints until the connection is established the ids have to be provided explicitly.
+
+Health-check names
 -----------------
 
 For a given prefix the individual monitors register the following health checks:

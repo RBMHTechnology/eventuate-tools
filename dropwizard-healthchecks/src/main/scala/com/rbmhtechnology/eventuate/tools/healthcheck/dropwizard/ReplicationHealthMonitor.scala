@@ -8,8 +8,16 @@ import com.rbmhtechnology.eventuate.ReplicationEndpoint.Available
 import com.rbmhtechnology.eventuate.ReplicationEndpoint.Unavailable
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.HealthRegistryName
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.AvailabilityMonitor.UnhealthyCause
+import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.HealthCheckRegistries.RichHealthCheckRegistry
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.MonitorActorStoppedPrematurelyException
 import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealthMonitorActor.StopMonitoring
+
+import scala.collection.JavaConverters._
+
+/**
+ * Identifies a log
+ */
+case class LogId(endpointId: String, logName: String)
 
 /**
  * Monitors the replication connections of the [[EventLog]]s of the [[ReplicationEndpoint]]
@@ -17,8 +25,14 @@ import com.rbmhtechnology.eventuate.tools.healthcheck.dropwizard.StoppableHealth
  *
  * The registry name for the replication from a certain log: `replication-from.<remote-endpoint-id>.<log-name>`.
  * and it is optionally prefixed with `namePrefix.` if that is non-empty.
+ * All remote logs given in `initiallyUnhealthy` are initially reported
+ * as unhealthy with cause [[ReplicationHealthMonitor#ReplicationConnectionNotYetEstablishedException]]
+ * until the first [[Available]] or [[Unavailable]] is received.
+ * For all other remote logs (not given in `initiallyUnhealthy`) no health state is reported until the first
+ * [[Available]] or [[Unavailable]] is received. This means that no health state is reported
+ * if no connection can be established to these logs (e.g. because the remote host is down when connecting).
  */
-class ReplicationHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: Option[String] = None) {
+class ReplicationHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: Option[String] = None, initiallyUnhealthy: Set[LogId] = Set.empty) {
 
   import ReplicationHealthMonitor._
 
@@ -29,6 +43,13 @@ class ReplicationHealthMonitor(endpoint: ReplicationEndpoint, healthRegistry: He
   private implicit val unavailableHealthOps = new HealthRegistryName[Unavailable] with UnhealthyCause[Unavailable] {
     override def healthRegistryName(unavailable: Unavailable): String = healthName(unavailable.endpointId, unavailable.logName)
     override def unhealthyCause(unavailable: Unavailable): Throwable = new ReplicationUnhealthyException(unavailable)
+  }
+
+  initiallyUnhealthy.foreach { logId =>
+    healthRegistry.registerUnhealthy(
+      healthName(logId.endpointId, logId.logName),
+      new ReplicationConnectionNotYetEstablishedException(logId.endpointId, logId.logName)
+    )
   }
 
   private val monitorActor =
@@ -62,6 +83,14 @@ object ReplicationHealthMonitor {
   }
 
   /**
+   * Exception of an unhealthy [[HealthCheck.Result]] that is reported for those logs that are explicitly
+   * specified when constructing an [[ReplicationHealthMonitor]] until the first replication
+   * read request to this log was successful.
+   */
+  class ReplicationConnectionNotYetEstablishedException(endpointId: String, logName: String)
+    extends IllegalStateException(s"Replication of log $logName from endpoint $endpointId is not yet established")
+
+  /**
    * The exception that is reported if the monitoring actor stops prematurely
    * (without being stopped through [[ReplicationHealthMonitor.stopMonitoring()]]).
    */
@@ -78,4 +107,16 @@ object ReplicationHealthMonitor {
    */
   def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry) =
     new ReplicationHealthMonitor(endpoint, healthRegistry)
+
+  /**
+   * Create a [[ReplicationHealthMonitor]] with the given parameters.
+   */
+  def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, namePrefix: String, initiallyUnhealthy: java.util.Set[LogId]) =
+    new ReplicationHealthMonitor(endpoint, healthRegistry, Option(namePrefix), initiallyUnhealthy.asScala.toSet)
+
+  /**
+   * Create a [[ReplicationHealthMonitor]] with the given parameters.
+   */
+  def create(endpoint: ReplicationEndpoint, healthRegistry: HealthCheckRegistry, initiallyUnhealthy: java.util.Set[LogId]) =
+    new ReplicationHealthMonitor(endpoint, healthRegistry, initiallyUnhealthy = initiallyUnhealthy.asScala.toSet)
 }
