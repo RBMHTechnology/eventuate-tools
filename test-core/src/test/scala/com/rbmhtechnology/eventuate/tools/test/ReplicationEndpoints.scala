@@ -15,7 +15,9 @@ import com.rbmhtechnology.eventuate.log.leveldb.LeveldbEventLog
 import com.rbmhtechnology.eventuate.tools.test.AkkaSystems.akkaAddress
 import com.rbmhtechnology.eventuate.tools.test.AkkaSystems.akkaRemotingConfig
 import com.rbmhtechnology.eventuate.tools.test.AkkaSystems.withActorSystem
+import com.rbmhtechnology.eventuate.tools.test.AkkaSystems.withActorSystems
 import com.rbmhtechnology.eventuate.tools.test.EventLogs.withLevelDbLogConfig
+import com.rbmhtechnology.eventuate.tools.test.EventLogs.withLevelDbLogConfigs
 
 object ReplicationEndpoints {
 
@@ -25,17 +27,14 @@ object ReplicationEndpoints {
     aFilters: EndpointFilters = NoFilters,
     bFilters: EndpointFilters = NoFilters
   )(f: (ReplicationEndpoint, ReplicationEndpoint) => A): A = {
-    withLevelDbLogConfig { configA =>
-      withActorSystem(configA.withFallback(akkaRemotingConfig)) { systemA =>
-        withLevelDbLogConfig { configB =>
-          withActorSystem(configB.withFallback(akkaRemotingConfig)) { systemB =>
-            val connectionToA = replicationConnectionFor(systemA)
-            val connectionToB = replicationConnectionFor(systemB)
-            val endpointA = replicationEndpoint(logNames, logFactory, Set(connectionToB), aFilters)(systemA)
-            val endpointB = replicationEndpoint(logNames, logFactory, Set(connectionToA), bFilters)(systemB)
-            f(endpointA, endpointB)
-          }
-        }
+    withLevelDbLogConfigs(2) { configs =>
+      withActorSystems(configs.map(_.withFallback(akkaRemotingConfig))) {
+        case Seq(systemA, systemB) =>
+          val connectionToA = replicationConnectionFor(systemA)
+          val connectionToB = replicationConnectionFor(systemB)
+          val endpointA = replicationEndpoint(logNames, logFactory, Set(connectionToB), aFilters)(systemA)
+          val endpointB = replicationEndpoint(logNames, logFactory, Set(connectionToA), bFilters)(systemB)
+          f(endpointA, endpointB)
       }
     }
   }
@@ -66,7 +65,7 @@ object ReplicationEndpoints {
 
     withLevelDbLogConfig { config =>
       withActorSystem(config.withFallback(akkaRemotingConfig)) { implicit system =>
-        val endpoint = replicationEndpoint(logNames)
+        val endpoint = replicationEndpoint(logNames, connections = connections)
         f(endpoint)
       }
     }

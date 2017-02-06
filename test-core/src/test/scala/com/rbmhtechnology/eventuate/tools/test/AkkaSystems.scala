@@ -9,6 +9,8 @@ import com.rbmhtechnology.eventuate.ReplicationConnection.DefaultRemoteSystemNam
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 
+import scala.collection.immutable.Seq
+
 object AkkaSystems {
 
   private val akkaSystemCounter = new AtomicInteger(0)
@@ -24,17 +26,24 @@ object AkkaSystems {
     s"akka.test.single-expect-default=${TestTimings.timeout.duration.toMillis}ms"
   )
 
-  def withActorSystem[A](overrideConfig: Config = ConfigFactory.empty())(f: ActorSystem => A): A = {
+  def withActorSystem[A](overrideConfig: Config = ConfigFactory.empty())(f: ActorSystem => A): A =
+    withActorSystems(List(overrideConfig))(systems => f(systems.head))
+
+  def withActorSystems[A](overrideConfigs: Seq[Config])(f: Seq[ActorSystem] => A): A = {
     import Futures.AwaitHelper
-    val config = overrideConfig
-      .withFallback(akkaTestTimeoutConfig)
-      .withFallback(ConfigFactory.parseResourcesAnySyntax("application.conf"))
-      .withFallback(ConfigFactory.load("test-core.conf"))
-    val system = ActorSystem(newUniqueSystemName, config)
+
+    var systems = Vector.empty[ActorSystem]
     try {
-      f(system)
+      overrideConfigs.foreach { overrideConfig =>
+        val config = overrideConfig
+          .withFallback(akkaTestTimeoutConfig)
+          .withFallback(ConfigFactory.parseResourcesAnySyntax("application.conf"))
+          .withFallback(ConfigFactory.load("test-core.conf"))
+        systems = systems :+ ActorSystem(newUniqueSystemName, config)
+      }
+      f(systems)
     } finally {
-      system.terminate().await
+      systems.foreach(_.terminate().await)
     }
   }
 

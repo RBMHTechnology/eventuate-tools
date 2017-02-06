@@ -17,22 +17,29 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
 
+import scala.collection.immutable.Seq
+import scala.util.control.Exception.ignoring
+
 object EventLogs {
 
   private val logIdCounter = new AtomicInteger(0)
 
-  def withTempDir[A](f: Path => A): A = {
-    val tmpDir = Files.createTempDirectory("tmp-test")
+  def withTempDir[A](f: Path => A): A = withTempDirs(1)(paths => f(paths.head))
+
+  def withTempDirs[A](n: Int)(f: Seq[Path] => A): A = {
+    val tmpDirs = (1 to n).map(i => Files.createTempDirectory(s"tmp-test$i"))
     try {
-      f(tmpDir)
+      f(tmpDirs)
     } finally {
-      FileUtils.deleteDirectory(tmpDir.toFile)
+      tmpDirs.foreach(dir => ignoring(classOf[Exception])(FileUtils.deleteDirectory(dir.toFile)))
     }
   }
 
-  def withLevelDbLogConfig[A](f: Config => A): A = withTempDir { tmpDir =>
-    val config = ConfigFactory.parseString(s"eventuate.log.leveldb.dir=${tmpDir.toAbsolutePath}")
-    f(config)
+  def withLevelDbLogConfig[A](f: Config => A): A = withLevelDbLogConfigs(1)(configs => f(configs.head))
+
+  def withLevelDbLogConfigs[A](n: Int)(f: Seq[Config] => A): A = withTempDirs(n) { tmpDirs =>
+    val configs = tmpDirs.map(dir => ConfigFactory.parseString(s"eventuate.log.leveldb.dir=${dir.toAbsolutePath}"))
+    f(configs)
   }
 
   def withLevelDbEventLog[A](id: String = uniqueLogId)(f: (ActorSystem, ActorRef) => A): A =
