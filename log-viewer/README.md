@@ -57,7 +57,7 @@ log-viewer comes with a usage page when called with command line option `--help`
 
 log-viewer allows to specify a format string for printing retrieved events in a desired 
 format. There are actually two types of _template engines_ that can be selected by the command 
-line option `--eventFormatter`:
+line option `--eventFormat`:
 
 - `CaseClass`: Allows to specify a simple `java.util.Formatter`-like template to 
   select specific fields of a 
