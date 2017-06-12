@@ -44,7 +44,8 @@ object EventuateToolsBuildPlugin extends AutoPlugin {
       eventuate ++
       (scalaTest ++
         eventuateLevelDb ++
-        akkaTestKit).map(_ % Test)
+        akkaTestKit).map(_ % Test),
+    checksums in update := Seq("md5")
   )
 
   val formatSettings = SbtScalariform.scalariformSettings ++ Seq(
