@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val eventuateVersion = "0.8.1"
+  val eventuateVersion = "0.9"
   val akkaVersion = "2.4.12"
   val dropWizardMetricsVersion = "3.1.0"
 
